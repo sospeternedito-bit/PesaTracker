@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pesa Tracker</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f6f7f4;--card:#fff;--text:#1b2a22;--muted:#6b7a71;--line:#e3e8e4;--green:#1f8a4c;--red:#c93a3a;--accent:#1f8a4c;--chip:#eaf3ed}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1713;--card:#18231d;--text:#e8f1ec;--muted:#8fa399;--line:#27362d;--green:#4cc27f;--red:#ef6b6b;--accent:#4cc27f;--chip:#203128}}
+:root[data-theme="dark"]{--bg:#0f1713;--card:#18231d;--text:#e8f1ec;--muted:#8fa399;--line:#27362d;--green:#4cc27f;--red:#ef6b6b;--accent:#4cc27f;--chip:#203128}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.4}
+.wrap{max-width:720px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:4px 0 12px}
+.tabs{display:flex;gap:6px;background:var(--chip);padding:4px;border-radius:12px;margin-bottom:14px}
+.tabs button{flex:1;border:0;background:none;color:var(--muted);padding:10px;border-radius:9px;font-weight:600;font-size:15px;cursor:pointer}
+.tabs button.on{background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.v{font-size:20px;font-weight:700;margin-top:4px;word-break:break-word}
+.pos{color:var(--green)}.neg{color:var(--red)}
+form{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+form .full{grid-column:1/-1}
+input,select{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);font-size:15px}
+button.add{grid-column:1/-1;background:var(--accent);color:#fff;border:0;padding:12px;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer}
+.seg{display:flex;gap:6px;grid-column:1/-1}
+.seg label{flex:1;text-align:center;padding:10px;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-weight:600}
+.seg input{display:none}
+.seg input:checked+span{color:#fff}
+.seg label:has(input:checked){background:var(--accent);color:#fff;border-color:var(--accent)}
+.seg label.out:has(input:checked){background:var(--red);border-color:var(--red)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border:0}
+.row small{color:var(--muted);display:block}
+.amt{font-weight:700;white-space:nowrap}
+.del{border:0;background:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px 8px}
+.bar{height:8px;background:var(--chip);border-radius:6px;overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:var(--red)}
+h2{font-size:15px;margin:18px 0 8px}
+.empty{color:var(--muted);text-align:center;padding:18px}
+.cur{width:110px;padding:6px 8px;text-align:right}
+.hidden{display:none}
+details.card{margin-bottom:14px}
+summary{font-weight:700;cursor:pointer}
+textarea{width:100%;min-height:120px;margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);font-size:14px;font-family:inherit}
+.btn{background:var(--accent);color:#fff;border:0;padding:11px 14px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;margin-top:8px}
+.btn.alt{background:var(--chip);color:var(--text)}
+.pv select{width:auto;padding:6px;font-size:13px;margin-top:4px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--text);padding:6px 10px;border-radius:99px;font-size:13px;cursor:pointer}
+.chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.tag{font-size:11px;background:var(--chip);color:var(--muted);padding:1px 7px;border-radius:99px;margin-left:6px}
+#impmsg{color:var(--muted);font-size:13px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>💰 Pesa Tracker</h1>
+<div class="tabs"><button id="t1" class="on">Money in &amp; out</button><button id="t2">Investments</button></div>
+
+<section id="p1">
+  <div class="grid" id="s1"></div>
+  <form id="f1">
+    <div class="seg">
+      <label><input type="radio" name="kind" value="in" checked><span>＋ Money in</span></label>
+      <label class="out"><input type="radio" name="kind" value="out"><span>－ Money out</span></label>
+    </div>
+    <input name="amount" type="number" step="0.01" min="0" placeholder="Amount (KES)" required>
+    <input name="date" type="date" required>
+    <select name="cat" class="full"></select>
+    <input name="note" class="full" placeholder="Note (optional)">
+    <button class="add">Add</button>
+  </form>
+  <details class="card" id="imp" open>
+    <summary>📲 Import from M-Pesa</summary>
+    <p class="k" style="text-transform:none;margin:10px 0 0">Open your Messages app, copy your M-Pesa SMS (one or many), and paste them here. Repeats are skipped automatically.</p>
+    <textarea id="smsbox" placeholder="QJK1ABC2XY Confirmed. Ksh500.00 sent to JANE DOE 0722... on 5/10/26 at 3:45 PM..."></textarea>
+    <button class="btn" id="clipbtn" type="button">📋 Paste from clipboard</button> <button class="btn alt" id="readbtn" type="button">Read messages</button>
+    <div id="impmsg"></div>
+    <div id="preview" class="pv"></div>
+  </details>
+  <h2>Where it went</h2><div class="card" id="breakdown"></div>
+  <h2>Transactions</h2><div class="chips" id="chips"></div><div class="card" id="txlist"></div>
+</section>
+
+<section id="p2" class="hidden">
+  <div class="grid" id="s2"></div>
+  <form id="f2">
+    <input name="name" placeholder="Name (e.g. Safaricom, MMF)" required class="full">
+    <select name="type">
+      <option>NSE share</option><option>Unit trust / MMF</option><option>Sacco</option>
+      <option>T-bill / Bond</option><option>Land / Property</option><option>Other</option>
+    </select>
+    <input name="units" type="number" step="any" min="0" placeholder="Units / shares" required>
+    <input name="buy" type="number" step="any" min="0" placeholder="Buy price per unit" required>
+    <input name="now" type="number" step="any" min="0" placeholder="Current price per unit" required>
+    <input name="fees" type="number" step="any" min="0" placeholder="Fees paid (optional)">
+    <input name="date" type="date" required>
+    <button class="add">Add investment</button>
+  </form>
+  <h2>Holdings</h2><div class="card" id="invlist"></div>
+  <p class="k" style="text-transform:none">Tip: update the current price any time to see your gain or loss.</p>
+</section>
+</div>
+
+<script>
+const KEY='pesa-tracker-v1';
+let S={tx:[],inv:[]};
+try{const r=localStorage.getItem(KEY);if(r)S=JSON.parse(r)}catch(e){}
+if(!S.tx)S.tx=[];if(!S.inv)S.inv=[];
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const $=id=>document.getElementById(id);
+const fmt=n=>'KES '+(+n||0).toLocaleString('en-KE',{maximumFractionDigits:2});
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const today=()=>new Date().toISOString().slice(0,10);
+const CATS={in:['Salary','Business','Gift','Investment returns','Other income'],
+out:['Food','Rent','Transport','Airtime & data','Bills','School fees','Health','Savings / Investing','Fun','M-Pesa charges','Other']};
+const kind=()=>document.querySelector('[name=kind]:checked').value;
+function fillCats(){$('f1').cat.innerHTML=CATS[kind()].map(c=>`<option>${c}</option>`).join('')}
+document.querySelectorAll('[name=kind]').forEach(r=>r.onchange=fillCats);
+fillCats();$('f1').date.value=today();$('f2').date.value=today();
+
+$('t1').onclick=()=>tab(1);$('t2').onclick=()=>tab(2);
+function tab(n){$('p1').classList.toggle('hidden',n!==1);$('p2').classList.toggle('hidden',n!==2);
+$('t1').classList.toggle('on',n===1);$('t2').classList.toggle('on',n===2)}
+
+$('f1').onsubmit=e=>{e.preventDefault();const f=e.target;
+S.tx.unshift({id:Date.now(),kind:kind(),amount:+f.amount.value,date:f.date.value,cat:f.cat.value,note:f.note.value});
+save();f.amount.value='';f.note.value='';render()};
+$('f2').onsubmit=e=>{e.preventDefault();const f=e.target;
+S.inv.unshift({id:Date.now(),name:f.name.value,type:f.type.value,units:+f.units.value,buy:+f.buy.value,now:+f.now.value,fees:+f.fees.value||0,date:f.date.value});
+save();['name','units','buy','now','fees'].forEach(k=>f[k].value='');render()};
+
+/* ---------- M-Pesa SMS import ---------- */
+let pend=[];let flt='all';
+const num=s=>parseFloat(String(s).replace(/,/g,''));
+function guessCat(kind,name,p){
+ const t=(name+' '+p).toLowerCase();
+ if(kind==='in')return /salary|payroll/.test(t)?'Salary':'Other income';
+ if(/airtime/.test(t))return 'Airtime & data';
+ if(/kplc|kenya power|nairobi water|water|zuku|dstv|gotv|startimes|wifi|safaricom home|internet/.test(t))return 'Bills';
+ if(/naivas|quickmart|carrefour|chandarana|supermarket|restaurant|cafe|kfc|java|pizza|butcher|hotel|kibanda|mama mboga|glovo|food/.test(t))return 'Food';
+ if(/uber|bolt|little|matatu|fuel|petrol|shell|total|rubis|sacco.*sacco|parking/.test(t))return 'Transport';
+ if(/school|college|university|fees/.test(t))return 'School fees';
+ if(/pharmacy|hospital|clinic|chemist|sha|nhif/.test(t))return 'Health';
+ if(/rent|landlord|apartments/.test(t))return 'Rent';
+ if(/withdraw/.test(t))return 'Other';
+ return 'Other';
+}
+function parseMpesa(text){
+ const out=[];
+ text.split(/(?=\b[A-Z0-9]{10}\s+Confirmed)/).forEach(p=>{
+  const m=p.match(/^([A-Z0-9]{10})\s+Confirmed/);if(!m)return;
+  const am=p.match(/Ksh\s?([\d,]+(?:\.\d+)?)/i);if(!am)return;
+  let kind,name='',ch='';
+  if(/you have received/i.test(p)){kind='in';ch='Received';name=(p.match(/received Ksh\s?[\d,.]+ from (.+?)(?: [\d*]{7,}| on \d)/i)||[])[1]||''}
+  else if(/sent to/i.test(p)){kind='out';ch=/for account/i.test(p)?'Paid':'Sent';name=(p.match(/sent to (.+?)(?: [\d*]{7,}| for account| on \d)/i)||[])[1]||''}
+  else if(/paid to/i.test(p)){kind='out';ch='Paid';name=(p.match(/paid to (.+?)\.? on \d/i)||[])[1]||''}
+  else if(/you bought/i.test(p)&&/airtime/i.test(p)){kind='out';ch='Airtime';name='Airtime'}
+  else if(/withdraw/i.test(p)){kind='out';ch='Withdrawn';name='Withdrawal '+((p.match(/Withdraw Ksh\s?[\d,.]+ from \d+ - (.+?) New/i)||[])[1]||'')}
+  else return;
+  const d=p.match(/on (\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  let date=today();
+  if(d){const y=d[3].length===2?'20'+d[3]:d[3];date=`${y}-${d[2].padStart(2,'0')}-${d[1].padStart(2,'0')}`}
+  const f=p.match(/Transaction cost, Ksh\s?([\d,]+(?:\.\d+)?)/i);
+  out.push({code:m[1],kind,ch,amount:num(am[1]),date,name:name.trim(),fee:f?num(f[1]):0,cat:guessCat(kind,name,p)});
+ });
+ return out;
+}
+const CHS={in:['Received'],out:['Sent','Paid','Withdrawn','Airtime']};
+function renderPreview(){
+ $('preview').innerHTML=pend.length?pend.map((r,i)=>`<div class="row"><div><b>${esc(r.name||r.code)}</b><small>${esc(r.date)} · ${r.code}${r.fee?' · fee '+fmt(r.fee):''}</small><select onchange="pend[${i}].ch=this.value">${CHS[r.kind].map(c=>`<option${c===r.ch?' selected':''}>${c}</option>`).join('')}</select> <select onchange="pend[${i}].cat=this.value">${CATS[r.kind].map(c=>`<option${c===r.cat?' selected':''}>${c}</option>`).join('')}</select></div><div><span class="amt ${r.kind==='in'?'pos':'neg'}">${r.kind==='in'?'+':'−'}${fmt(r.amount)}</span><button class="del" onclick="pend.splice(${i},1);renderPreview()">✕</button></div></div>`).join('')+`<button class="btn" type="button" onclick="doImport()">Import ${pend.length}</button> <button class="btn alt" type="button" onclick="pend=[];renderPreview()">Cancel</button>`:'';
+}
+window.pend=pend;window.renderPreview=renderPreview;
+function readSms(){
+ const rows=parseMpesa($('smsbox').value);
+ const have=new Set(S.tx.map(t=>t.code).filter(Boolean));
+ const seen=new Set();
+ pend=rows.filter(r=>{if(have.has(r.code)||seen.has(r.code))return false;seen.add(r.code);return true});
+ window.pend=pend;
+ const skipped=rows.length-pend.length;
+ $('impmsg').textContent=rows.length?`Found ${pend.length} new transaction${pend.length===1?'':'s'}${skipped?` (${skipped} already imported, skipped)`:''}. Check the categories, then import.`:'No M-Pesa transactions found. Paste the full SMS text, starting with the transaction code.';
+ renderPreview();
+}
+$('readbtn').onclick=readSms;
+$('clipbtn').onclick=async()=>{
+ try{$('smsbox').value=await navigator.clipboard.readText();readSms()}catch(e){$('impmsg').textContent='Could not read the clipboard here. Long-press the box below and paste instead.'}
+};
+window.doImport=()=>{
+ pend.forEach((r,i)=>{
+  S.tx.push({id:Date.now()+i*2,kind:r.kind,amount:r.amount,date:r.date,cat:r.cat,ch:r.ch,note:r.name,code:r.code});
+  if(r.fee)S.tx.push({id:Date.now()+i*2+1,kind:'out',amount:r.fee,date:r.date,cat:'M-Pesa charges',ch:'Fee',note:'Fee for '+r.code,code:r.code+'F'});
+ });
+ S.tx.sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+ const n=pend.length;pend=[];window.pend=pend;save();
+ $('smsbox').value='';$('impmsg').textContent=`Imported ${n} transaction${n===1?'':'s'} ✅`;
+ renderPreview();render();
+};
+
+function del(list,id){S[list]=S[list].filter(x=>x.id!==id);save();render()}
+function setNow(id,v){const i=S.inv.find(x=>x.id===id);if(i){i.now=+v||0;save();render()}}
+window.del=del;window.setNow=setNow;
+
+function render(){
+ const tin=S.tx.filter(t=>t.kind==='in').reduce((a,t)=>a+t.amount,0);
+ const tout=S.tx.filter(t=>t.kind==='out').reduce((a,t)=>a+t.amount,0);
+ const bal=tin-tout;
+ $('s1').innerHTML=`<div class="card"><div class="k">Money in</div><div class="v pos">${fmt(tin)}</div></div>
+ <div class="card"><div class="k">Money out</div><div class="v neg">${fmt(tout)}</div></div>
+ <div class="card"><div class="k">Balance</div><div class="v ${bal>=0?'pos':'neg'}">${fmt(bal)}</div></div>`;
+ const by={};S.tx.filter(t=>t.kind==='out').forEach(t=>by[t.cat]=(by[t.cat]||0)+t.amount);
+ const ents=Object.entries(by).sort((a,b)=>b[1]-a[1]);
+ $('breakdown').innerHTML=ents.length?ents.map(([c,v])=>`<div style="margin:8px 0"><div class="row" style="border:0;padding:0"><span>${esc(c)}</span><span class="amt">${fmt(v)}</span></div><div class="bar"><i style="width:${tout?v/tout*100:0}%"></i></div></div>`).join(''):'<div class="empty">No spending yet</div>';
+ const chs=['Received','Sent','Paid','Withdrawn','Airtime'].filter(c=>S.tx.some(t=>t.ch===c));
+ const opts=[['all','All'],['in','Money in'],['out','Money out']].concat(chs.map(c=>[c,c]));
+ const match=t=>flt==='all'||(flt==='in'||flt==='out'?t.kind===flt:t.ch===flt);
+ const shown=S.tx.filter(match);
+ const sum=shown.reduce((a,t)=>a+(t.kind==='in'?t.amount:-t.amount),0);
+ $('chips').innerHTML=opts.map(([k,l])=>`<button class="chip${flt===k?' on':''}" onclick="flt='${k}';render()">${l}</button>`).join('')+(flt!=='all'?`<span class="k" style="align-self:center">Total ${fmt(Math.abs(sum))}</span>`:'');
+ $('txlist').innerHTML=shown.length?shown.map(t=>`<div class="row"><div>${esc(t.cat)}${t.ch?`<span class="tag">${esc(t.ch)}</span>`:''}<small>${esc(t.date)}${t.note?' · '+esc(t.note):''}</small></div><div><span class="amt ${t.kind==='in'?'pos':'neg'}">${t.kind==='in'?'+':'−'}${fmt(t.amount)}</span><button class="del" onclick="del('tx',${t.id})" aria-label="Delete">✕</button></div></div>`).join(''):'<div class="empty">Nothing here yet. Add or import above 👆</div>';
+
+ const cost=i=>i.units*i.buy+i.fees, val=i=>i.units*i.now;
+ const tc=S.inv.reduce((a,i)=>a+cost(i),0), tv=S.inv.reduce((a,i)=>a+val(i),0), pl=tv-tc;
+ $('s2').innerHTML=`<div class="card"><div class="k">Invested</div><div class="v">${fmt(tc)}</div></div>
+ <div class="card"><div class="k">Current value</div><div class="v">${fmt(tv)}</div></div>
+ <div class="card"><div class="k">Gain / loss</div><div class="v ${pl>=0?'pos':'neg'}">${pl>=0?'+':''}${fmt(pl)}${tc?` (${(pl/tc*100).toFixed(1)}%)`:''}</div></div>`;
+ $('invlist').innerHTML=S.inv.length?S.inv.map(i=>{const p=val(i)-cost(i);return `<div class="row"><div><b>${esc(i.name)}</b><small>${esc(i.type)} · ${i.units} × ${fmt(i.buy)} · ${esc(i.date)}</small><small class="${p>=0?'pos':'neg'}">${p>=0?'+':''}${fmt(p)}</small></div><div style="text-align:right"><div class="amt">${fmt(val(i))}</div><input class="cur" type="number" step="any" value="${i.now}" onchange="setNow(${i.id},this.value)" aria-label="Current price"><button class="del" onclick="del('inv',${i.id})" aria-label="Delete">✕</button></div></div>`}).join(''):'<div class="empty">No investments yet</div>';
+}
+render();
+try{
+ const u=new URLSearchParams(location.search).get('sms')||new URLSearchParams(location.hash.slice(1)).get('sms');
+ if(u){$('smsbox').value=u;readSms();$('imp').open=true;$('imp').scrollIntoView()}
+}catch(e){}
+
+window.checkPending=()=>{try{if(window.Android){const a=JSON.parse(Android.takePending());if(a.length){$('smsbox').value=a.join('\n');readSms();$('imp').open=true;$('imp').scrollIntoView()}}}catch(e){}};
+checkPending();
+</script>
+</body>
+</html>

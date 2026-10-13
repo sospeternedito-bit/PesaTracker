@@ -2,7 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <application
+        android:icon="@mipmap/ic_launcher"
         android:label="Pesa Tracker"
         android:allowBackup="false"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
@@ -15,6 +18,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".PopupActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Material.Light.Dialog" />
         <receiver
             android:name=".SmsReceiver"
             android:exported="true"

@@ -6,9 +6,9 @@
 <title>Pesa Tracker</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
---bg:#f6f7f4;--card:#fff;--text:#1b2a22;--muted:#6b7a71;--line:#e3e8e4;--green:#1f8a4c;--red:#c93a3a;--accent:#1f8a4c;--chip:#eaf3ed}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1713;--card:#18231d;--text:#e8f1ec;--muted:#8fa399;--line:#27362d;--green:#4cc27f;--red:#ef6b6b;--accent:#4cc27f;--chip:#203128}}
-:root[data-theme="dark"]{--bg:#0f1713;--card:#18231d;--text:#e8f1ec;--muted:#8fa399;--line:#27362d;--green:#4cc27f;--red:#ef6b6b;--accent:#4cc27f;--chip:#203128}
+--bg:#f1f5fb;--card:#fff;--text:#14213d;--muted:#5f6f8c;--line:#dde5f2;--green:#1f8a4c;--red:#c93a3a;--accent:#2563eb;--chip:#e7effd}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1220;--card:#131c2e;--text:#e6edf8;--muted:#8a9bb8;--line:#22304a;--green:#4cc27f;--red:#ef6b6b;--accent:#5b9bff;--chip:#1a2842}}
+:root[data-theme="dark"]{--bg:#0b1220;--card:#131c2e;--text:#e6edf8;--muted:#8a9bb8;--line:#22304a;--green:#4cc27f;--red:#ef6b6b;--accent:#5b9bff;--chip:#1a2842}
 *{box-sizing:border-box}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.4}
@@ -54,7 +54,7 @@ textarea{width:100%;min-height:120px;margin-top:10px;padding:10px;border:1px sol
 .chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 .tag{font-size:11px;background:var(--chip);color:var(--muted);padding:1px 7px;border-radius:99px;margin-left:6px}
 #impmsg{color:var(--muted);font-size:13px;margin-top:8px}
-.hero{background:linear-gradient(135deg,#1f8a4c,#0f5f5f);color:#fff;border-radius:20px;padding:18px;margin-bottom:14px;box-shadow:0 8px 22px rgba(31,138,76,.28)}
+.hero{background:linear-gradient(135deg,#2563eb,#1e3a8a);color:#fff;border-radius:20px;padding:18px;margin-bottom:14px;box-shadow:0 8px 22px rgba(37,99,235,.3)}
 .hero .top{display:flex;justify-content:space-between;align-items:center}
 .eye{background:rgba(255,255,255,.18);border:0;border-radius:99px;padding:6px 10px;font-size:16px;cursor:pointer}
 .hk{font-size:12px;opacity:.8;margin-top:12px;text-transform:uppercase;letter-spacing:.05em}
@@ -76,7 +76,7 @@ textarea{width:100%;min-height:120px;margin-top:10px;padding:10px;border:1px sol
 </head>
 <body>
 <div class="wrap">
-<div class="hero"><div class="top"><b>💰 Pesa Tracker</b><button id="eye" class="eye" type="button">👁️</button></div><div class="hk">Balance · all time</div><div class="big" id="bal">KES 0</div><div class="hs" id="nw"></div></div>
+<div class="hero"><div class="top"><b><svg width="28" height="28" viewBox="0 0 108 108" style="vertical-align:-8px;margin-right:8px"><rect width="108" height="108" rx="28" fill="#fff" fill-opacity=".2"/><circle cx="54" cy="54" r="26" fill="#fff"/><path d="M41,66h6v-8h-6z M51,66h6v-16h-6z M61,66h6v-24h-6z" fill="#2563EB"/></svg>Pesa Tracker</b><button id="eye" class="eye" type="button">👁️</button></div><div class="hk">Balance · all time</div><div class="big" id="bal">KES 0</div><div class="hs" id="nw"></div></div>
 <div class="tabs"><button id="t1" class="on">💸<small>Money</small></button><button id="t2">📈<small>Invest</small></button><button id="t3">⚙️<small>More</small></button></div>
 
 <section id="p1">
@@ -128,6 +128,8 @@ textarea{width:100%;min-height:120px;margin-top:10px;padding:10px;border:1px sol
  <div class="card"><div id="pinstat" class="k" style="text-transform:none"></div>
   <button class="btn" id="setpin" type="button">Set PIN</button> <button class="btn alt" id="rmpin" type="button">Remove PIN</button>
   <p class="k" style="text-transform:none;margin-top:10px">If you forget your PIN, the only way back in is clearing the app's data, which deletes your records. Make a backup below first.</p></div>
+ <div id="alerts" class="hidden"><h2>🔔 Alerts &amp; fingerprint</h2><div class="card"><button class="btn alt" id="popbtn" type="button">Pop-up alerts: Off</button> <button class="btn alt hidden" id="biobtn" type="button">Fingerprint unlock: Off</button>
+  <p class="k" style="text-transform:none;margin-top:10px">Pop-up alerts open a small window with Sent / Paid buttons when an M-Pesa SMS arrives, instead of a notification on the bar. They need the "Display over other apps" permission. Fingerprint unlock needs a PIN set first, as its backup.</p></div></div>
  <h2>🎨 Look</h2>
  <div class="card"><button class="btn alt" id="themebtn" type="button">Theme: Auto</button> <button class="btn alt" id="hidebtn" type="button">Hide amounts</button></div>
  <h2>🎯 Monthly budgets</h2><div class="card" id="budgets"></div>
@@ -137,7 +139,7 @@ textarea{width:100%;min-height:120px;margin-top:10px;padding:10px;border:1px sol
   <div id="bkmsg" class="k" style="text-transform:none;margin-top:8px"></div></div>
 </section>
 </div>
-<div id="lock" class="hidden"><div class="lbox"><div style="font-size:42px">🔐</div><div id="lmsg">Enter PIN</div><div id="dots"></div><div id="pad"></div><button class="btn alt" id="lcancel" type="button">Cancel</button></div></div>
+<div id="lock" class="hidden"><div class="lbox"><div style="font-size:42px">🔐</div><div id="lmsg">Enter PIN</div><div id="dots"></div><div id="pad"></div><button class="btn" id="lbio" type="button">👆 Use fingerprint</button> <button class="btn alt" id="lcancel" type="button">Cancel</button></div></div>
 
 <script>
 const KEY='pesa-tracker-v1';
@@ -272,7 +274,9 @@ function render(){
 const hp=x=>{let h=2166136261;for(let r=0;r<3;r++)for(const c of 'pesa'+x+'ke'){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return (h>>>0).toString(36)};
 let buf='',mode='unlock',first='',fails=0,until=0,armed=0;
 function dots(){$('dots').textContent='●'.repeat(buf.length)+'○'.repeat(4-buf.length)}
-function showLock(m,msg){mode=m;buf='';$('lock').classList.remove('hidden');$('lmsg').textContent=msg||'Enter PIN';$('lcancel').classList.toggle('hidden',m==='unlock');dots()}
+const hasBio=()=>!!(S.bio&&window.Android&&Android.canBio&&Android.canBio());
+const tryBio=()=>{try{if(hasBio())Android.bio()}catch(e){}};
+function showLock(m,msg){mode=m;buf='';$('lock').classList.remove('hidden');$('lmsg').textContent=msg||'Enter PIN';$('lcancel').classList.toggle('hidden',m==='unlock');$('lbio').classList.toggle('hidden',!(m==='unlock'&&hasBio()));dots();if(m==='unlock')setTimeout(tryBio,350)}
 function press(d){
  if(Date.now()<until){$('lmsg').textContent='Too many tries. Please wait.';return}
  if(buf.length>=4)return;buf+=d;dots();if(buf.length<4)return;
@@ -287,10 +291,12 @@ function press(d){
 }
 $('pad').innerHTML=[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k=>k===''?'<span></span>':`<button class="key" type="button" data-k="${k}">${k}</button>`).join('');
 $('pad').onclick=e=>{const k=e.target.dataset.k;if(k===undefined)return;if(k==='⌫'){buf=buf.slice(0,-1);dots()}else press(k)};
+$('lbio').onclick=tryBio;
+window.bioResult=ok=>{if(ok&&mode==='unlock'&&!$('lock').classList.contains('hidden')){fails=0;buf='';$('lock').classList.add('hidden')}};
 $('lcancel').onclick=()=>$('lock').classList.add('hidden');
 const lockNow=()=>{if(S.pin&&$('lock').classList.contains('hidden'))showLock('unlock')};
 window.lockNow=lockNow;
-document.addEventListener('visibilitychange',()=>{if(document.hidden)lockNow()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)lockNow();else if(mode==='unlock'&&!$('lock').classList.contains('hidden'))tryBio()});
 window.addEventListener('blur',lockNow);
 
 function applyTheme(){if(S.theme)document.documentElement.dataset.theme=S.theme;else delete document.documentElement.dataset.theme}
@@ -299,11 +305,16 @@ function renderMore(){
  $('setpin').textContent=S.pin?'Change PIN':'Set PIN';$('rmpin').classList.toggle('hidden',!S.pin);$('rmpin').textContent='Remove PIN';
  $('themebtn').textContent='Theme: '+(S.theme==='dark'?'Dark':S.theme==='light'?'Light':'Auto');
  $('hidebtn').textContent=S.hide?'Show amounts':'Hide amounts';
+ const A=window.Android;$('alerts').classList.toggle('hidden',!A);
+ if(A){try{$('popbtn').textContent='Pop-up alerts: '+(A.popupOn()?'On':'Off');$('biobtn').classList.toggle('hidden',!(A.canBio&&A.canBio()));$('biobtn').textContent='Fingerprint unlock: '+(S.bio?'On':'Off')}catch(e){}}
 }
+$('popbtn').onclick=()=>{try{Android.setPopup(!Android.popupOn());setTimeout(renderMore,500)}catch(e){}};
+$('biobtn').onclick=()=>{if(!S.pin){$('pinstat').textContent='Set a PIN first. It is the backup for your fingerprint.';return}S.bio=!S.bio;save();renderMore()};
+window.refreshMore=renderMore;
 const toggleHide=()=>{S.hide=!S.hide;save();render();renderMore()};
 $('eye').onclick=toggleHide;$('hidebtn').onclick=toggleHide;
 $('setpin').onclick=()=>showLock('new','Choose a 4-digit PIN');
-$('rmpin').onclick=function(){if(!armed){armed=1;this.textContent='Tap again to confirm';setTimeout(()=>{armed=0;renderMore()},3000);return}armed=0;delete S.pin;save();renderMore()};
+$('rmpin').onclick=function(){if(!armed){armed=1;this.textContent='Tap again to confirm';setTimeout(()=>{armed=0;renderMore()},3000);return}armed=0;delete S.pin;delete S.bio;save();renderMore()};
 $('themebtn').onclick=()=>{S.theme=S.theme==='dark'?'light':S.theme==='light'?undefined:'dark';if(!S.theme)delete S.theme;save();applyTheme();renderMore()};
 function buildBudgets(){$('budgets').innerHTML='<p class="k" style="text-transform:none;margin:0 0 6px">Monthly limit per category. Leave blank for none.</p>'+CATS.out.map(c=>`<div class="row"><span>${ICON[c]||'🧾'} ${esc(c)}</span><input class="cur" type="number" min="0" step="any" placeholder="—" value="${S.budgets[c]||''}" data-c="${esc(c)}"></div>`).join('')}
 $('budgets').addEventListener('change',e=>{const c=e.target.dataset.c;if(!c)return;S.budgets[c]=+e.target.value||0;if(!S.budgets[c])delete S.budgets[c];save();render()});
@@ -320,7 +331,7 @@ try{
  const u=new URLSearchParams(location.search).get('sms')||new URLSearchParams(location.hash.slice(1)).get('sms');
  if(u){$('smsbox').value=u;readSms();$('imp').open=true;$('imp').scrollIntoView()}
 }catch(e){}
-window.checkPending=()=>{try{if(window.Android){const a=JSON.parse(Android.takePending());if(a.length){$('smsbox').value=a.join('\n');readSms();$('imp').open=true;$('imp').scrollIntoView()}}}catch(e){}};
+window.checkPending=()=>{try{if(window.Android){const a=JSON.parse(Android.takePending());if(a.length){$('smsbox').value=a.map(x=>x.t||x).join('\n');readSms();a.forEach(x=>{if(x.ch){const m=(x.t||'').match(/^([A-Z0-9]{10})/);const r=m&&pend.find(p=>p.code===m[1]);if(r&&CHS[r.kind].includes(x.ch))r.ch=x.ch}});renderPreview();$('imp').open=true;$('imp').scrollIntoView()}}}catch(e){}};
 checkPending();
 </script>
 </body>

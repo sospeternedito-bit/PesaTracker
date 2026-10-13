@@ -7,8 +7,10 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.provider.Settings
 import android.provider.Telephony
 import org.json.JSONArray
+import org.json.JSONObject
 
 class SmsReceiver : BroadcastReceiver() {
     override fun onReceive(c: Context, i: Intent) {
@@ -20,8 +22,17 @@ class SmsReceiver : BroadcastReceiver() {
 
         val p = c.getSharedPreferences("pesa", Context.MODE_PRIVATE)
         val q = JSONArray(p.getString("q", "[]"))
-        q.put(body)
+        q.put(JSONObject().put("t", body))
         p.edit().putString("q", q.toString()).apply()
+
+        if (p.getBoolean("popup", false) && Settings.canDrawOverlays(c)) {
+            c.startActivity(
+                Intent(c, PopupActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    .putExtra("body", body)
+            )
+            return
+        }
 
         val nm = c.getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(NotificationChannel("mpesa", "M-Pesa", NotificationManager.IMPORTANCE_HIGH))

@@ -1,5 +1,5 @@
 package ke.pesa.tracker
-
+ 
 import android.app.Activity
 import android.content.Context
 import android.content.res.Configuration
@@ -18,7 +18,7 @@ import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
-
+ 
 class PopupActivity : Activity() {
     private val outCats = listOf("Food", "Rent", "Transport", "Airtime & data", "Bills", "School fees", "Health", "Savings / Investing", "Fun", "Debt repayment", "Other")
     private val inCats = listOf("Salary", "Business", "Gift", "Investment returns", "Other income")
@@ -27,7 +27,7 @@ class PopupActivity : Activity() {
     private var cat = "Other"
     private lateinit var seg: LinearLayout
     private lateinit var chips: LinearLayout
-
+ 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
     private fun shape(color: Int, r: Int) = GradientDrawable().apply { setColor(color); cornerRadius = dp(r).toFloat() }
     private fun label(t: String, size: Float, color: Int, bold: Boolean = false): TextView {
@@ -38,7 +38,7 @@ class PopupActivity : Activity() {
         if (bold) v.setTypeface(v.typeface, Typeface.BOLD)
         return v
     }
-
+ 
     private fun guess(low: String, incoming: Boolean): String = when {
         incoming -> if (low.contains("salary") || low.contains("payroll")) "Salary" else "Other income"
         low.contains("airtime") -> "Airtime & data"
@@ -50,7 +50,7 @@ class PopupActivity : Activity() {
         Regex("rent|landlord|apartments").containsMatchIn(low) -> "Rent"
         else -> "Other"
     }
-
+ 
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
         val body = intent.getStringExtra("body") ?: ""
@@ -63,17 +63,17 @@ class PopupActivity : Activity() {
             else -> "Sent"
         }
         cat = guess(low, incoming)
-
+ 
         val dark = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
         val cardBg = if (dark) Color.parseColor("#131C2E") else Color.WHITE
         val ink = if (dark) Color.parseColor("#E6EDF8") else Color.parseColor("#14213D")
         val muted = if (dark) Color.parseColor("#8A9BB8") else Color.parseColor("#5F6F8C")
         val soft = if (dark) Color.parseColor("#1A2842") else Color.parseColor("#E7EFFD")
-
+ 
         val root = FrameLayout(this)
         root.setBackgroundColor(Color.parseColor("#99000000"))
         root.setOnClickListener { finish() }
-
+ 
         val sheet = LinearLayout(this)
         sheet.orientation = LinearLayout.VERTICAL
         sheet.background = shape(cardBg, 28)
@@ -82,7 +82,7 @@ class PopupActivity : Activity() {
         val lp = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM)
         lp.setMargins(dp(12), dp(12), dp(12), dp(16))
         root.addView(sheet, lp)
-
+ 
         val head = LinearLayout(this)
         head.orientation = LinearLayout.VERTICAL
         head.setPadding(dp(22), dp(20), dp(22), dp(20))
@@ -98,12 +98,12 @@ class PopupActivity : Activity() {
         sm.maxLines = 2
         head.addView(sm)
         sheet.addView(head)
-
+ 
         val pad = LinearLayout(this)
         pad.orientation = LinearLayout.VERTICAL
         pad.setPadding(dp(18), dp(18), dp(18), dp(16))
         sheet.addView(pad)
-
+ 
         pad.addView(label("What was this?", 12f, muted, true))
         seg = LinearLayout(this)
         seg.orientation = LinearLayout.HORIZONTAL
@@ -112,7 +112,7 @@ class PopupActivity : Activity() {
         val segLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         segLp.topMargin = dp(8)
         pad.addView(seg, segLp)
-
+ 
         val catLabel = label("Category", 12f, muted, true)
         catLabel.setPadding(0, dp(16), 0, dp(8))
         pad.addView(catLabel)
@@ -122,7 +122,7 @@ class PopupActivity : Activity() {
         chips.orientation = LinearLayout.HORIZONTAL
         hs.addView(chips)
         pad.addView(hs)
-
+ 
         val row = LinearLayout(this)
         row.orientation = LinearLayout.HORIZONTAL
         row.gravity = Gravity.CENTER_VERTICAL
@@ -145,7 +145,7 @@ class PopupActivity : Activity() {
         val rowLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         rowLp.topMargin = dp(20)
         pad.addView(row, rowLp)
-
+ 
         fun renderSeg() {
             seg.removeAllViews()
             for (c in listOf("Received", "Sent", "Paid")) {
@@ -169,7 +169,7 @@ class PopupActivity : Activity() {
         renderChips(ink, soft)
         setContentView(root)
     }
-
+ 
     private fun renderChips(ink: Int, soft: Int) {
         chips.removeAllViews()
         for (c in if (ch == "Received") inCats else outCats) {
@@ -183,7 +183,7 @@ class PopupActivity : Activity() {
             chips.addView(t, lp)
         }
     }
-
+ 
     private fun mark(body: String, kind: String, amt: Double) {
         val p = getSharedPreferences("pesa", Context.MODE_PRIVATE)
         val q = JSONArray(p.getString("q", "[]"))
@@ -196,30 +196,30 @@ class PopupActivity : Activity() {
         }
         p.edit().putString("q", q.toString()).apply()
     }
-
+ 
     private fun budgetCheck(category: String, amt: Double) {
         val p = getSharedPreferences("pesa", Context.MODE_PRIVATE)
         val snap = try { JSONObject(p.getString("bud", "{}") ?: "{}") } catch (e: Exception) { JSONObject() }
         val limits = snap.optJSONObject("limits") ?: return
         val spent = snap.optJSONObject("spent") ?: JSONObject()
         val oldKeys = snap.optJSONObject("keys") ?: JSONObject()
-
+ 
         val f = SimpleDateFormat("yyyy-MM-dd", Locale.US)
         val day = f.format(Calendar.getInstance().time)
         val wk = Calendar.getInstance()
         wk.firstDayOfWeek = Calendar.MONDAY
         wk.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
         val keys = linkedMapOf("d" to day, "w" to f.format(wk.time), "m" to day.substring(0, 7), "y" to day.substring(0, 4))
-
+ 
         val names = spent.keys().asSequence().toList()
         for ((pk, pkey) in keys) {
             if (oldKeys.optString(pk) != pkey) for (n in names) spent.optJSONObject(n)?.put(pk, 0.0)
         }
-
+ 
         val al = JSONArray(p.getString("al", "[]"))
         val done = (0 until al.length()).map { al.getString(it) }.toMutableSet()
         val words = mapOf("d" to "daily", "w" to "weekly", "m" to "monthly", "y" to "annual")
-
+ 
         for (k in listOf(category, "ALL")) {
             val lim = limits.optJSONObject(k) ?: continue
             val sp = spent.optJSONObject(k) ?: JSONObject().also { spent.put(k, it) }
@@ -240,8 +240,12 @@ class PopupActivity : Activity() {
                 }
             }
         }
+        val nk = JSONObject()
+        for ((pk, pkey) in keys) nk.put(pk, pkey)
+        val na = JSONArray()
+        for (x in done) na.put(x)
         snap.put("spent", spent)
-        snap.put("keys", JSONObject(keys))
-        p.edit().putString("bud", snap.toString()).putString("al", JSONArray(done.toList()).toString()).apply()
+        snap.put("keys", nk)
+        p.edit().putString("bud", snap.toString()).putString("al", na.toString()).apply()
     }
 }

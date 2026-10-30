@@ -23,7 +23,7 @@
             android:exported="false"
             android:excludeFromRecents="true"
             android:taskAffinity=""
-            android:theme="@android:style/Theme.Material.Light.Dialog" />
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
         <receiver
             android:name=".SmsReceiver"
             android:exported="true"

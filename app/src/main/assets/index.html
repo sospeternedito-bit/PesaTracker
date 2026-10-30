@@ -72,12 +72,17 @@ textarea{width:100%;min-height:120px;margin-top:10px;padding:10px;border:1px sol
 .lbox{width:280px}#lmsg{margin:8px 0;font-weight:600}#dots{font-size:26px;letter-spacing:8px;height:40px;color:var(--accent)}
 #pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0}
 .key{font-size:24px;padding:14px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--text);cursor:pointer}
+.lb{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.late{color:var(--red);font-weight:700;font-size:13px}
+.payrow{display:flex;gap:6px;margin-top:12px;align-items:center}.payrow input{flex:1;min-width:0}.payrow .btn{margin:0;padding:10px 12px}
+#toast{position:fixed;left:12px;right:12px;top:calc(12px + env(safe-area-inset-top,0px));z-index:60;background:#1e3a8a;color:#fff;padding:12px 14px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.3);font-size:14px}
+#toast.hidden{display:none}
 </style>
 </head>
 <body>
 <div class="wrap">
 <div class="hero"><div class="top"><b><svg width="28" height="28" viewBox="0 0 108 108" style="vertical-align:-8px;margin-right:8px"><rect width="108" height="108" rx="28" fill="#fff" fill-opacity=".2"/><circle cx="54" cy="54" r="26" fill="#fff"/><path d="M41,66h6v-8h-6z M51,66h6v-16h-6z M61,66h6v-24h-6z" fill="#2563EB"/></svg>Pesa Tracker</b><button id="eye" class="eye" type="button">👁️</button></div><div class="hk">Balance · all time</div><div class="big" id="bal">KES 0</div><div class="hs" id="nw"></div></div>
-<div class="tabs"><button id="t1" class="on">💸<small>Money</small></button><button id="t2">📈<small>Invest</small></button><button id="t3">⚙️<small>More</small></button></div>
+<div class="tabs"><button id="t1" class="on">💸<small>Money</small></button><button id="t2">📈<small>Invest</small></button><button id="t4">🤝<small>Debts</small></button><button id="t3">⚙️<small>More</small></button></div>
 
 <section id="p1">
   <div class="chips" id="pers"></div><div class="grid" id="s1"></div>
@@ -100,7 +105,7 @@ textarea{width:100%;min-height:120px;margin-top:10px;padding:10px;border:1px sol
     <div id="impmsg"></div>
     <div id="preview" class="pv"></div>
   </details>
-  <h2>Where it went</h2><div class="card" id="breakdown"></div>
+  <h2>📅 Daily summary</h2><div class="card" id="daily"></div><h2>🎯 Budgets</h2><div class="card" id="budcard"></div><h2>Where it went</h2><div class="card" id="breakdown"></div>
   <h2>Transactions</h2><div class="chips" id="chips"></div><div class="card" id="txlist"></div>
 </section>
 
@@ -123,6 +128,21 @@ textarea{width:100%;min-height:120px;margin-top:10px;padding:10px;border:1px sol
   <p class="k" style="text-transform:none">Tip: update the current price any time to see your gain or loss.</p>
 </section>
 
+<section id="p4" class="hidden">
+ <div class="grid" id="s4"></div>
+ <form id="f4">
+  <input name="who" class="full" placeholder="Owed to (person, bank, sacco, app)" required>
+  <input name="amount" type="number" step="0.01" min="0" placeholder="Amount borrowed (KES)" required>
+  <input name="rate" type="number" step="any" min="0" placeholder="Interest rate % (optional)">
+  <select name="per"><option value="m">% per month</option><option value="y">% per year</option></select>
+  <label class="lb">Borrowed on<input name="start" type="date" required></label>
+  <label class="lb">Due date<input name="due" type="date"></label>
+  <button class="add">Add debt</button>
+ </form>
+ <label class="k" style="text-transform:none;display:flex;gap:8px;align-items:center;margin-bottom:12px"><input type="checkbox" id="dout" style="width:auto"> Also record debt payments as money out (leave off if the payment already comes in through M-Pesa import)</label>
+ <div id="debtlist"></div>
+</section>
+
 <section id="p3" class="hidden">
  <h2>🔒 Security</h2>
  <div class="card"><div id="pinstat" class="k" style="text-transform:none"></div>
@@ -132,34 +152,37 @@ textarea{width:100%;min-height:120px;margin-top:10px;padding:10px;border:1px sol
   <p class="k" style="text-transform:none;margin-top:10px">Pop-up alerts open a small window with Sent / Paid buttons when an M-Pesa SMS arrives, instead of a notification on the bar. They need the "Display over other apps" permission. Fingerprint unlock needs a PIN set first, as its backup.</p></div></div>
  <h2>🎨 Look</h2>
  <div class="card"><button class="btn alt" id="themebtn" type="button">Theme: Auto</button> <button class="btn alt" id="hidebtn" type="button">Hide amounts</button></div>
- <h2>🎯 Monthly budgets</h2><div class="card" id="budgets"></div>
+ <h2>🏦 Starting balance</h2><div class="card"><p class="k" style="text-transform:none;margin:0 0 8px">Money you already had (M-Pesa, cash, bank) before using the app. Your daily totals build on top of it.</p><input id="open" type="number" step="any" placeholder="KES 0"></div>
+ <h2>🎯 Budgets</h2><div class="card" id="budgets"></div>
  <h2>💾 Backup &amp; restore</h2>
  <div class="card"><button class="btn" id="bkbtn" type="button">Copy backup</button> <button class="btn alt" id="rsbtn" type="button">Restore from text</button>
   <textarea id="bk" placeholder="Backup text appears here. To restore, paste a backup here, then tap Restore."></textarea>
   <div id="bkmsg" class="k" style="text-transform:none;margin-top:8px"></div></div>
 </section>
 </div>
+<div id="toast" class="hidden"></div>
 <div id="lock" class="hidden"><div class="lbox"><div style="font-size:42px">🔐</div><div id="lmsg">Enter PIN</div><div id="dots"></div><div id="pad"></div><button class="btn" id="lbio" type="button">👆 Use fingerprint</button> <button class="btn alt" id="lcancel" type="button">Cancel</button></div></div>
 
 <script>
 const KEY='pesa-tracker-v1';
 let S={tx:[],inv:[]};
 try{const r=localStorage.getItem(KEY);if(r)S=JSON.parse(r)}catch(e){}
-if(!S.tx)S.tx=[];if(!S.inv)S.inv=[];if(!S.budgets)S.budgets={};
+if(!S.tx)S.tx=[];if(!S.inv)S.inv=[];if(!S.budgets)S.budgets={};if(!S.debts)S.debts=[];if(!S.opening)S.opening=0;
+const migBud=()=>Object.keys(S.budgets).forEach(k=>{if(typeof S.budgets[k]==='number')S.budgets[k]={m:S.budgets[k]}});migBud();
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const $=id=>document.getElementById(id);
 const fmt=n=>S.hide?'KES ••••':'KES '+(+n||0).toLocaleString('en-KE',{maximumFractionDigits:2});
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const today=()=>new Date().toISOString().slice(0,10);
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const CATS={in:['Salary','Business','Gift','Investment returns','Other income'],
-out:['Food','Rent','Transport','Airtime & data','Bills','School fees','Health','Savings / Investing','Fun','M-Pesa charges','Other']};
+out:['Food','Rent','Transport','Airtime & data','Bills','School fees','Health','Savings / Investing','Fun','M-Pesa charges','Debt repayment','Other']};
 const kind=()=>document.querySelector('[name=kind]:checked').value;
 function fillCats(){$('f1').cat.innerHTML=CATS[kind()].map(c=>`<option>${c}</option>`).join('')}
 document.querySelectorAll('[name=kind]').forEach(r=>r.onchange=fillCats);
 fillCats();$('f1').date.value=today();$('f2').date.value=today();
 
-function tab(n){[1,2,3].forEach(i=>{$('p'+i).classList.toggle('hidden',i!==n);$('t'+i).classList.toggle('on',i===n)});if(n===3)renderMore()}
-[1,2,3].forEach(i=>$('t'+i).onclick=()=>tab(i));
+function tab(n){[1,2,3,4].forEach(i=>{$('p'+i).classList.toggle('hidden',i!==n);$('t'+i).classList.toggle('on',i===n)});if(n===3)renderMore()}
+[1,2,3,4].forEach(i=>$('t'+i).onclick=()=>tab(i));
 
 $('f1').onsubmit=e=>{e.preventDefault();const f=e.target;
 S.tx.unshift({id:Date.now(),kind:kind(),amount:+f.amount.value,date:f.date.value,cat:f.cat.value,note:f.note.value});
@@ -224,12 +247,7 @@ $('clipbtn').onclick=async()=>{
  try{$('smsbox').value=await navigator.clipboard.readText();readSms()}catch(e){$('impmsg').textContent='Could not read the clipboard here. Long-press the box below and paste instead.'}
 };
 window.doImport=()=>{
- pend.forEach((r,i)=>{
-  S.tx.push({id:Date.now()+i*2,kind:r.kind,amount:r.amount,date:r.date,cat:r.cat,ch:r.ch,note:r.name,code:r.code});
-  if(r.fee)S.tx.push({id:Date.now()+i*2+1,kind:'out',amount:r.fee,date:r.date,cat:'M-Pesa charges',ch:'Fee',note:'Fee for '+r.code,code:r.code+'F'});
- });
- S.tx.sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
- const n=pend.length;pend=[];window.pend=pend;save();
+ const n=pend.length;addRows(pend);pend=[];window.pend=pend;save();
  $('smsbox').value='';$('impmsg').textContent=`Imported ${n} transaction${n===1?'':'s'} ✅`;
  renderPreview();render();
 };
@@ -239,25 +257,89 @@ function setNow(id,v){const i=S.inv.find(x=>x.id===id);if(i){i.now=+v||0;save();
 window.del=del;window.setNow=setNow;
 
 let per='this';
-const ICON={Salary:'💼',Business:'🏪',Gift:'🎁','Investment returns':'📈','Other income':'💵',Food:'🍽️',Rent:'🏠',Transport:'🚌','Airtime & data':'📱',Bills:'💡','School fees':'🎓',Health:'🩺','Savings / Investing':'🏦',Fun:'🎉','M-Pesa charges':'🧾',Other:'🧾'};
+const ICON={Salary:'💼',Business:'🏪',Gift:'🎁','Investment returns':'📈','Other income':'💵',Food:'🍽️',Rent:'🏠',Transport:'🚌','Airtime & data':'📱',Bills:'💡','School fees':'🎓',Health:'🩺','Savings / Investing':'🏦',Fun:'🎉','M-Pesa charges':'🧾','Debt repayment':'🤝',Other:'🧾'};
 const ym=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
 const lastM=()=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);return ym(d)};
 const inPer=t=>per==='all'||t.date.slice(0,7)===(per==='this'?ym(new Date()):lastM());
+const nid=()=>Date.now()*1000+Math.floor(Math.random()*1000);
+const pad2=n=>String(n).padStart(2,'0');
+const dayNum=s=>{const [y,m,d]=s.split('-').map(Number);return Math.round(Date.UTC(y,m-1,d)/864e5)};
+const daysBetween=(a,b)=>dayNum(b)-dayNum(a);
+const weekStart=s=>{const n=dayNum(s),dt=new Date((n-(n+3)%7)*864e5);return dt.getUTCFullYear()+'-'+pad2(dt.getUTCMonth()+1)+'-'+pad2(dt.getUTCDate())};
+const PLB=[['d','Day'],['w','Week'],['m','Month'],['y','Year']];
+function toast(t){const e=$('toast');e.textContent=t;e.classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.add('hidden'),5000)}
+function addRows(rows){rows.forEach(r=>{
+ S.tx.push({id:nid(),kind:r.kind,amount:r.amount,date:r.date,cat:r.cat,ch:r.ch,note:r.name,code:r.code});
+ if(r.fee)S.tx.push({id:nid(),kind:'out',amount:r.fee,date:r.date,cat:'M-Pesa charges',ch:'Fee',note:'Fee for '+r.code,code:r.code+'F'});
+});S.tx.sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id)}
+
+/* ---- debts ---- */
+function debtCalc(d){
+ const rate=(+d.rate||0)/100,dr=d.per==='y'?rate/365:rate*12/365;
+ let P=+d.amount,I=0,last=d.start,paid=0,intr=0;
+ const acc=to=>{const x=P*dr*Math.max(0,daysBetween(last,to));I+=x;intr+=x;if(to>last)last=to};
+ (d.pays||[]).slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(p=>{acc(p.date);paid+=p.amount;const ti=Math.min(p.amount,I);I-=ti;P=Math.max(0,P-(p.amount-ti))});
+ acc(today());
+ const rem=P+I,owed=(+d.amount)+intr;
+ return{rem,paid,intr,P,pct:owed>0?Math.min(100,paid/owed*100):0,perDay:P*dr,late:d.due&&rem>0.5?Math.max(0,daysBetween(d.due,today())):0}
+}
+window.payDebt=id=>{const d=S.debts.find(x=>x.id===id),v=+$('pay'+id).value;if(!d||!(v>0))return;
+ const p={date:today(),amount:v};
+ if(S.debtOut){const t={id:nid(),kind:'out',amount:v,date:today(),cat:'Debt repayment',note:'Payment to '+d.who};S.tx.unshift(t);p.tx=t.id}
+ (d.pays=d.pays||[]).push(p);save();render()};
+window.undoPay=id=>{const d=S.debts.find(x=>x.id===id);if(!d||!(d.pays||[]).length)return;const p=d.pays.pop();if(p.tx)S.tx=S.tx.filter(t=>t.id!==p.tx);save();render()};
+
+/* ---- daily + budgets ---- */
+function dailyData(){const by={};S.tx.forEach(t=>{const x=by[t.date]||(by[t.date]={d:t.date,i:0,o:0});if(t.kind==='in')x.i+=t.amount;else x.o+=t.amount});
+ const days=Object.values(by).sort((a,b)=>a.d.localeCompare(b.d));let run=+S.opening||0;days.forEach(x=>{x.net=x.i-x.o;run+=x.net;x.eod=run});return days}
+const periodKeys=()=>{const t=today();return{d:t,w:weekStart(t),m:t.slice(0,7),y:t.slice(0,4)}};
+function inP(t,p,k){return p==='d'?t.date===k:p==='w'?weekStart(t.date)===k:p==='m'?t.date.slice(0,7)===k:t.date.slice(0,4)===k}
+function budgetStatus(){const K=periodKeys(),O=S.tx.filter(t=>t.kind==='out'),out=[];
+ Object.keys(S.budgets).forEach(c=>PLB.forEach(([p])=>{const lim=(S.budgets[c]||{})[p];if(!lim)return;
+  out.push({c,p,pk:K[p],lim,spent:O.filter(t=>inP(t,p,K[p])&&(c==='ALL'||t.cat===c)).reduce((a,t)=>a+t.amount,0)})}));return out}
+function checkBudgets(){
+ const st=budgetStatus();
+ try{if(window.Android){const sn={limits:{},spent:{},keys:periodKeys()};st.forEach(x=>{(sn.limits[x.c]=sn.limits[x.c]||{})[x.p]=x.lim;(sn.spent[x.c]=sn.spent[x.c]||{})[x.p]=x.spent});Android.setBudgets(JSON.stringify(sn))}}catch(e){}
+ let al=[];try{al=window.Android?JSON.parse(Android.alertedKeys()):[]}catch(e){}
+ const seen=new Set((S.alerts||[]).concat(al));let ch=false;
+ st.forEach(x=>{if(x.spent<=x.lim)return;const id=x.c+'|'+x.p+'|'+x.pk;if(seen.has(id))return;seen.add(id);(S.alerts=S.alerts||[]).push(id);ch=true;
+  const msg=(x.c==='ALL'?'Overall spending':x.c)+' '+{d:'daily',w:'weekly',m:'monthly',y:'annual'}[x.p]+' budget passed: '+fmt(x.spent)+' of '+fmt(x.lim);
+  toast('⚠️ '+msg);try{if(window.Android){Android.notify('Budget passed ⚠️',msg);Android.markAlerted(id)}}catch(e){}});
+ if(ch){if(S.alerts.length>300)S.alerts=S.alerts.slice(-300);save()}
+}
+function renderExtras(){
+ const D=dailyData(),td=today(),tdd=D.find(x=>x.d===td)||{i:0,o:0,net:0};
+ const now=(+S.opening||0)+S.tx.reduce((a,t)=>a+(t.kind==='in'?t.amount:-t.amount),0);
+ const lab=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(Date.UTC(y,m-1,d)).toLocaleDateString('en-KE',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'})};
+ const mm=per==='this'?ym(new Date()):lastM();
+ const days=D.filter(x=>per==='all'||x.d.slice(0,7)===mm).reverse().slice(0,62);
+ $('daily').innerHTML=`<div class="k">Today · ${lab(td)}</div><div style="display:flex;justify-content:space-between;margin:8px 0;gap:8px;flex-wrap:wrap"><span class="pos">In +${fmt(tdd.i)}</span><span class="neg">Out −${fmt(tdd.o)}</span><b class="${tdd.net>=0?'pos':'neg'}">Net ${fmt(tdd.net)}</b></div><div class="k" style="text-transform:none">Balance if the day ended now: <b class="${now>=0?'pos':'neg'}">${fmt(now)}</b>${now<0?' ⚠️':''}</div>`+(days.length?'<div style="margin-top:8px">'+days.map(x=>`<div class="row"><div><b>${lab(x.d)}</b><small>In +${fmt(x.i)} · Out −${fmt(x.o)}</small></div><div style="text-align:right"><div class="amt ${x.net>=0?'pos':'neg'}">${x.net>=0?'+':'−'}${fmt(Math.abs(x.net))}</div><small>EOD ${fmt(x.eod)}</small></div></div>`).join('')+'</div>':'');
+ const st=budgetStatus(),PL={d:'Today',w:'This week',m:'This month',y:'This year'};
+ $('budcard').innerHTML=st.length?st.map(x=>{const pct=Math.min(100,x.spent/x.lim*100),over=x.spent>x.lim,cls=over?'':x.spent>x.lim*.8?'warn':'ok';return `<div style="margin:10px 0"><div class="row" style="border:0;padding:0"><span>${x.c==='ALL'?'🧮 All spending':(ICON[x.c]||'🧾')+' '+esc(x.c)} <small style="display:inline">· ${PL[x.p]}</small></span><span class="amt ${over?'neg':''}">${fmt(x.spent)} <small style="display:inline">/ ${fmt(x.lim)}</small></span></div><div class="bar"><i class="${cls}" style="width:${pct}%"></i></div></div>`}).join(''):'<div class="empty">No budgets yet. Set them under More ⚙️</div>';
+ const C=S.debts.map(d=>({d,c:debtCalc(d)}));
+ const tr=C.reduce((a,x)=>a+x.c.rem,0),tp=C.reduce((a,x)=>a+x.c.paid,0),ti=C.reduce((a,x)=>a+x.c.intr,0),late=C.filter(x=>x.c.late>0).length;
+ $('s4').innerHTML=`<div class="card"><div class="k">Total remaining</div><div class="v neg">${fmt(tr)}</div></div><div class="card"><div class="k">Paid so far</div><div class="v pos">${fmt(tp)}</div></div><div class="card"><div class="k">Interest so far</div><div class="v">${fmt(ti)}</div></div><div class="card"><div class="k">In arrears</div><div class="v ${late?'neg':''}">${late} debt${late===1?'':'s'}</div></div>`;
+ $('debtlist').innerHTML=C.length?C.map(({d,c})=>{
+  const due=c.rem<=0.5?'✅ Cleared':c.late>0?`<span class="late">⚠️ ${c.late} day${c.late===1?'':'s'} in arrears (due ${esc(d.due)})</span>`:d.due?`Due ${esc(d.due)} · in ${daysBetween(today(),d.due)} day(s)`:'No due date';
+  const rt=d.rate?`${d.rate}% per ${d.per==='y'?'year':'month'}`:'no interest';
+  return `<div class="card" style="margin-bottom:10px"><div class="row" style="border:0;padding:0"><div><b>${esc(d.who)}</b><small>Borrowed ${fmt(d.amount)} on ${esc(d.start)} · ${rt}</small></div><div style="text-align:right"><div class="k">Remaining</div><div class="v ${c.rem>0.5?'neg':'pos'}">${fmt(c.rem)}</div></div></div><div class="bar"><i class="ok" style="width:${c.pct}%"></i></div><small style="color:var(--muted)">${c.pct.toFixed(0)}% paid · Paid ${fmt(c.paid)} · Interest so far ${fmt(c.intr)}${d.rate&&c.P>0?` · adds ~${fmt(c.perDay)}/day`:''}</small><div style="margin-top:6px;font-size:13px">${due}</div>${c.rem>0.5?`<div class="payrow"><input id="pay${d.id}" type="number" step="any" min="0" placeholder="Payment (KES)"><button class="btn" onclick="payDebt(${d.id})">Pay</button><button class="btn alt" onclick="undoPay(${d.id})">Undo</button><button class="del" onclick="del('debts',${d.id})" aria-label="Delete">✕</button></div>`:`<div class="payrow"><button class="btn alt" onclick="undoPay(${d.id})">Undo last payment</button><button class="del" onclick="del('debts',${d.id})" aria-label="Delete">✕</button></div>`}</div>`}).join(''):'<div class="card empty">No debts recorded. Add one above.</div>';
+ $('dout').checked=!!S.debtOut;
+}
 function render(){
  const P=S.tx.filter(inPer);
  const sk=(l,k)=>l.filter(t=>t.kind===k).reduce((a,t)=>a+t.amount,0);
- const bal=sk(S.tx,'in')-sk(S.tx,'out');
+ const bal=(+S.opening||0)+sk(S.tx,'in')-sk(S.tx,'out');
  const cost=i=>i.units*i.buy+i.fees,val=i=>i.units*i.now;
  const tc=S.inv.reduce((a,i)=>a+cost(i),0),tv=S.inv.reduce((a,i)=>a+val(i),0),pl=tv-tc;
  $('bal').textContent=fmt(bal);$('eye').textContent=S.hide?'🙈':'👁️';
- $('nw').textContent='Investments '+fmt(tv)+' · Net worth '+fmt(bal+tv);
+ const dtot=S.debts.reduce((a,d)=>a+debtCalc(d).rem,0);$('nw').textContent='Investments '+fmt(tv)+' · Debts '+fmt(dtot)+' · Net worth '+fmt(bal+tv-dtot);
  $('pers').innerHTML=[['this','This month'],['last','Last month'],['all','All time']].map(([k,l])=>`<button class="chip${per===k?' on':''}" onclick="per='${k}';render()">${l}</button>`).join('');
  const pin=sk(P,'in'),pout=sk(P,'out'),net=pin-pout;
  $('s1').innerHTML=`<div class="card"><div class="k">Money in</div><div class="v pos">${fmt(pin)}</div></div><div class="card"><div class="k">Money out</div><div class="v neg">${fmt(pout)}</div></div><div class="card"><div class="k">Net</div><div class="v ${net>=0?'pos':'neg'}">${fmt(net)}</div></div>`;
  const by={};P.filter(t=>t.kind==='out').forEach(t=>by[t.cat]=(by[t.cat]||0)+t.amount);
- if(per!=='all')Object.keys(S.budgets).forEach(c=>{if(!(c in by))by[c]=0});
+ 
  const ents=Object.entries(by).sort((a,b)=>b[1]-a[1]);
- $('breakdown').innerHTML=ents.length?ents.map(([c,v])=>{const b=per!=='all'?S.budgets[c]:0;const pct=b?Math.min(100,v/b*100):(pout?v/pout*100:0);const cls=b?(v>b?'':v>b*.8?'warn':'ok'):'';return `<div style="margin:10px 0"><div class="row" style="border:0;padding:0"><span>${ICON[c]||'🧾'} ${esc(c)}</span><span class="amt">${fmt(v)}${b?` <small style="display:inline">/ ${fmt(b)}</small>`:''}</span></div><div class="bar"><i class="${cls}" style="width:${pct}%"></i></div></div>`}).join(''):'<div class="empty">No spending in this period</div>';
+ $('breakdown').innerHTML=ents.length?ents.map(([c,v])=>{const pct=pout?v/pout*100:0;const cls='';return `<div style="margin:10px 0"><div class="row" style="border:0;padding:0"><span>${ICON[c]||'🧾'} ${esc(c)}</span><span class="amt">${fmt(v)}</span></div><div class="bar"><i class="${cls}" style="width:${pct}%"></i></div></div>`}).join(''):'<div class="empty">No spending in this period</div>';
  const chs=['Received','Sent','Paid','Withdrawn','Airtime'].filter(c=>P.some(t=>t.ch===c));
  const opts=[['all','All'],['in','Money in'],['out','Money out']].concat(chs.map(c=>[c,c]));
  if(!opts.some(o=>o[0]===flt))flt='all';
@@ -268,6 +350,7 @@ function render(){
  $('txlist').innerHTML=shown.length?shown.map(t=>`<div class="row"><div style="display:flex;align-items:center"><span class="ic">${ICON[t.cat]||'🧾'}</span><div>${esc(t.cat)}${t.ch?`<span class="tag">${esc(t.ch)}</span>`:''}<small>${esc(t.date)}${t.note?' · '+esc(t.note):''}</small></div></div><div><span class="amt ${t.kind==='in'?'pos':'neg'}">${t.kind==='in'?'+':'−'}${fmt(t.amount)}</span><button class="del" onclick="del('tx',${t.id})" aria-label="Delete">✕</button></div></div>`).join(''):'<div class="empty">Nothing here yet. Add or import above 👆</div>';
  $('s2').innerHTML=`<div class="card"><div class="k">Invested</div><div class="v">${fmt(tc)}</div></div><div class="card"><div class="k">Current value</div><div class="v">${fmt(tv)}</div></div><div class="card"><div class="k">Gain / loss</div><div class="v ${pl>=0?'pos':'neg'}">${pl>=0?'+':''}${fmt(pl)}${tc&&!S.hide?` (${(pl/tc*100).toFixed(1)}%)`:''}</div></div>`;
  $('invlist').innerHTML=S.inv.length?S.inv.map(i=>{const p=val(i)-cost(i);return `<div class="row"><div><b>${esc(i.name)}</b><small>${esc(i.type)} · ${i.units} × ${fmt(i.buy)} · ${esc(i.date)}</small><small class="${p>=0?'pos':'neg'}">${p>=0?'+':''}${fmt(p)}</small></div><div style="text-align:right"><div class="amt">${fmt(val(i))}</div><input class="cur" type="number" step="any" value="${i.now}" onchange="setNow(${i.id},this.value)" aria-label="Current price"><button class="del" onclick="del('inv',${i.id})" aria-label="Delete">✕</button></div></div>`}).join(''):'<div class="empty">No investments yet</div>';
+ renderExtras();checkBudgets();
 }
 
 /* ---- security & settings ---- */
@@ -316,22 +399,35 @@ $('eye').onclick=toggleHide;$('hidebtn').onclick=toggleHide;
 $('setpin').onclick=()=>showLock('new','Choose a 4-digit PIN');
 $('rmpin').onclick=function(){if(!armed){armed=1;this.textContent='Tap again to confirm';setTimeout(()=>{armed=0;renderMore()},3000);return}armed=0;delete S.pin;delete S.bio;save();renderMore()};
 $('themebtn').onclick=()=>{S.theme=S.theme==='dark'?'light':S.theme==='light'?undefined:'dark';if(!S.theme)delete S.theme;save();applyTheme();renderMore()};
-function buildBudgets(){$('budgets').innerHTML='<p class="k" style="text-transform:none;margin:0 0 6px">Monthly limit per category. Leave blank for none.</p>'+CATS.out.map(c=>`<div class="row"><span>${ICON[c]||'🧾'} ${esc(c)}</span><input class="cur" type="number" min="0" step="any" placeholder="—" value="${S.budgets[c]||''}" data-c="${esc(c)}"></div>`).join('')}
-$('budgets').addEventListener('change',e=>{const c=e.target.dataset.c;if(!c)return;S.budgets[c]=+e.target.value||0;if(!S.budgets[c])delete S.budgets[c];save();render()});
+function buildBudgets(){$('budgets').innerHTML='<p class="k" style="text-transform:none;margin:0">Limits for a day, a week (Mon to Sun), a month or a year. You get an alert the moment one is passed. Leave blank for none.</p>'+['ALL'].concat(CATS.out).map(c=>`<div style="margin:12px 0"><div style="font-weight:600;margin-bottom:6px">${c==='ALL'?'🧮 All spending':(ICON[c]||'🧾')+' '+esc(c)}</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">${PLB.map(([p,l])=>`<label class="lb">${l}<input type="number" min="0" step="any" placeholder="—" value="${(S.budgets[c]||{})[p]||''}" data-c="${esc(c)}" data-p="${p}"></label>`).join('')}</div></div>`).join('')}
+$('budgets').addEventListener('change',e=>{const c=e.target.dataset.c,p=e.target.dataset.p;if(!c||!p)return;const v=+e.target.value||0,o=S.budgets[c]||(S.budgets[c]={});if(v)o[p]=v;else delete o[p];if(!Object.keys(o).length)delete S.budgets[c];save();render()});
 const bm=t=>$('bkmsg').textContent=t;
-$('bkbtn').onclick=()=>{const ta=$('bk');ta.value=JSON.stringify({tx:S.tx,inv:S.inv,budgets:S.budgets});ta.focus();ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}bm(ok?'Copied. Paste it into Notes or WhatsApp (Message yourself) to keep it safe.':'Select the text above, copy it, and keep it somewhere safe.')};
+$('bkbtn').onclick=()=>{const ta=$('bk');ta.value=JSON.stringify({tx:S.tx,inv:S.inv,budgets:S.budgets,debts:S.debts,opening:S.opening});ta.focus();ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}bm(ok?'Copied. Paste it into Notes or WhatsApp (Message yourself) to keep it safe.':'Select the text above, copy it, and keep it somewhere safe.')};
 $('rsbtn').onclick=()=>{try{const d=JSON.parse($('bk').value);if(!Array.isArray(d.tx)||!Array.isArray(d.inv))throw 0;
  const a=new Set(S.tx.map(t=>t.id)),b=new Set(S.inv.map(t=>t.id));let n=0;
  d.tx.forEach(t=>{if(!a.has(t.id)){S.tx.push(t);n++}});d.inv.forEach(t=>{if(!b.has(t.id)){S.inv.push(t);n++}});
- if(d.budgets)Object.assign(S.budgets,d.budgets);
+ if(d.budgets)Object.assign(S.budgets,d.budgets);migBud();const dd=new Set(S.debts.map(t=>t.id));(d.debts||[]).forEach(t=>{if(!dd.has(t.id)){S.debts.push(t);n++}});if(d.opening&&!S.opening)S.opening=d.opening;
  S.tx.sort((x,y)=>y.date.localeCompare(x.date)||y.id-x.id);save();buildBudgets();render();bm('Restored '+n+' new items ✅')}catch(e){bm('That does not look like a valid backup.')}};
 applyTheme();buildBudgets();renderMore();if(S.pin)showLock('unlock');
+$('f4').start.value=today();$('open').value=S.opening||'';
+$('open').onchange=()=>{S.opening=+$('open').value||0;save();render()};
+$('dout').onchange=e=>{S.debtOut=e.target.checked;save()};
+$('f4').onsubmit=e=>{e.preventDefault();const f=e.target;S.debts.unshift({id:nid(),who:f.who.value,amount:+f.amount.value,rate:+f.rate.value||0,per:f.per.value,start:f.start.value,due:f.due.value,pays:[]});save();['who','amount','rate','due'].forEach(k=>f[k].value='');render()};
 render();
 try{
  const u=new URLSearchParams(location.search).get('sms')||new URLSearchParams(location.hash.slice(1)).get('sms');
  if(u){$('smsbox').value=u;readSms();$('imp').open=true;$('imp').scrollIntoView()}
 }catch(e){}
-window.checkPending=()=>{try{if(window.Android){const a=JSON.parse(Android.takePending());if(a.length){$('smsbox').value=a.map(x=>x.t||x).join('\n');readSms();a.forEach(x=>{if(x.ch){const m=(x.t||'').match(/^([A-Z0-9]{10})/);const r=m&&pend.find(p=>p.code===m[1]);if(r&&CHS[r.kind].includes(x.ch))r.ch=x.ch}});renderPreview();$('imp').open=true;$('imp').scrollIntoView()}}}catch(e){}};
+window.checkPending=()=>{try{if(window.Android){const a=JSON.parse(Android.takePending());if(!a.length)return;
+ const have=new Set(S.tx.map(t=>t.code));let n=0;
+ a.filter(x=>x.auto).forEach(x=>{let r=parseMpesa(x.t||'')[0];
+  if(!r){const m=(x.t||'').match(/^([A-Z0-9]{10})/);r={code:m?m[1]:'P'+nid(),kind:'out',amount:+x.amt||0,date:today(),name:'',fee:0}}
+  if(!r.amount||have.has(r.code))return;have.add(r.code);
+  if(x.kind)r.kind=x.kind;if(x.ch)r.ch=x.ch;if(x.cat)r.cat=x.cat;addRows([r]);n++});
+ if(n){save();render();toast('✅ Added '+n+' transaction'+(n>1?'s':'')+' from pop-ups')}
+ const rest=a.filter(x=>!x.auto);
+ if(rest.length){$('smsbox').value=rest.map(x=>x.t||x).join('\n');readSms();renderPreview();$('imp').open=true;$('imp').scrollIntoView()}
+}}catch(e){}};
 checkPending();
 </script>
 </body>

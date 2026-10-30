@@ -15,6 +15,7 @@ import android.os.CancellationSignal
 import android.provider.Settings
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import org.json.JSONArray
 
 class MainActivity : Activity() {
     private lateinit var web: WebView
@@ -52,6 +53,28 @@ class MainActivity : Activity() {
                 m.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS
             else
                 m.canAuthenticate() == BiometricManager.BIOMETRIC_SUCCESS
+        }
+
+        @JavascriptInterface
+        fun setBudgets(json: String) {
+            getSharedPreferences("pesa", Context.MODE_PRIVATE).edit().putString("bud", json).apply()
+        }
+
+        @JavascriptInterface
+        fun alertedKeys(): String =
+            getSharedPreferences("pesa", Context.MODE_PRIVATE).getString("al", "[]") ?: "[]"
+
+        @JavascriptInterface
+        fun markAlerted(k: String) {
+            val p = getSharedPreferences("pesa", Context.MODE_PRIVATE)
+            val a = JSONArray(p.getString("al", "[]"))
+            a.put(k)
+            p.edit().putString("al", a.toString()).apply()
+        }
+
+        @JavascriptInterface
+        fun notify(title: String, text: String) {
+            Notif.post(this@MainActivity, title, text)
         }
 
         @JavascriptInterface

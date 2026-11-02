@@ -86,7 +86,23 @@ textarea{width:100%;min-height:120px;margin-top:10px;padding:10px;border:1px sol
 
 <section id="p1">
   <div class="chips" id="pers"></div><div class="grid" id="s1"></div>
-  <form id="f1">
+  <details class="card" id="pay">
+ <summary>💳 Pay with M-Pesa</summary>
+ <select id="pcat" style="margin-top:10px"></select>
+ <div class="chips" id="pm" style="margin-top:10px"></div>
+ <select id="prec" onchange="fillRec(this.value);this.value=''" style="margin-bottom:8px"></select>
+ <div style="display:grid;gap:8px">
+  <label class="lb"><span id="plab">Till number</span><input id="pnum" inputmode="numeric" placeholder="e.g. 123456"></label>
+  <label class="lb" id="pacctw" style="display:none"><span>Account number</span><input id="pacct" placeholder="Account / reference"></label>
+  <label class="lb">Amount (KES)<input id="pamt" type="number" step="any" min="0"></label>
+  <input id="pname" placeholder="Who or what for (optional)">
+ </div>
+ <button class="btn" type="button" onclick="startPlan()">Continue to M-Pesa →</button>
+ <div id="pmsg" class="k" style="text-transform:none;margin-top:8px"></div>
+ <div id="plans"></div>
+ <p class="k" style="text-transform:none;margin-top:8px">You enter your PIN only in Safaricom's own M-Pesa screen. This app never sees it. When the confirmation SMS arrives, the payment is filed under the category you chose here.</p>
+</details>
+<form id="f1">
     <div class="seg">
       <label><input type="radio" name="kind" value="in" checked><span>＋ Money in</span></label>
       <label class="out"><input type="radio" name="kind" value="out"><span>－ Money out</span></label>
@@ -105,7 +121,7 @@ textarea{width:100%;min-height:120px;margin-top:10px;padding:10px;border:1px sol
     <div id="impmsg"></div>
     <div id="preview" class="pv"></div>
   </details>
-  <h2>📅 Daily summary</h2><div class="card" id="daily"></div><h2>🎯 Budgets</h2><div class="card" id="budcard"></div><h2>Where it went</h2><div class="card" id="breakdown"></div>
+  <h2>📅 Daily summary</h2><div class="card" id="daily"></div><h2>🎯 Budgets</h2><div class="card" id="budcard"></div><h2>Where it went</h2><div class="card" id="breakdown"></div><h2>👥 Recipients</h2><div class="chips"><button class="chip on" id="rc1" type="button">Paid to</button><button class="chip" id="rc2" type="button">Received from</button></div><input id="recq" placeholder="Search name or number" style="margin-bottom:8px"><div class="card" id="reclist"></div>
   <h2>Transactions</h2><div class="chips" id="chips"></div><div class="card" id="txlist"></div>
 </section>
 
@@ -175,7 +191,7 @@ const fmt=n=>S.hide?'KES ••••':'KES '+(+n||0).toLocaleString('en-KE',{ma
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const CATS={in:['Salary','Business','Gift','Investment returns','Other income'],
-out:['Food','Rent','Transport','Airtime & data','Bills','School fees','Health','Savings / Investing','Fun','M-Pesa charges','Debt repayment','Other']};
+out:['Food','Rent','Transport','Airtime & data','Bills','School fees','Health','Savings / Investing','Fun','M-Pesa charges','Debt repayment','Fuliza fees','Other']};
 const kind=()=>document.querySelector('[name=kind]:checked').value;
 function fillCats(){$('f1').cat.innerHTML=CATS[kind()].map(c=>`<option>${c}</option>`).join('')}
 document.querySelectorAll('[name=kind]').forEach(r=>r.onchange=fillCats);
@@ -223,7 +239,7 @@ function parseMpesa(text){
   let date=today();
   if(d){const y=d[3].length===2?'20'+d[3]:d[3];date=`${y}-${d[2].padStart(2,'0')}-${d[1].padStart(2,'0')}`}
   const f=p.match(/Transaction cost, Ksh\s?([\d,]+(?:\.\d+)?)/i);
-  out.push({code:m[1],kind,ch,amount:num(am[1]),date,name:name.trim(),fee:f?num(f[1]):0,cat:guessCat(kind,name,p)});
+  out.push({code:m[1],kind,ch,amount:num(am[1]),date,name:name.trim(),fee:f?num(f[1]):0,ph:(p.match(/(?:sent to|from) [A-Za-z' .-]+? ([\d*]{7,})/i)||[])[1]||'',acct:(p.match(/for account (.+?) on \d/i)||[])[1]||'',fz:parseFz(p,m[1]),cat:guessCat(kind,name,p)});
  });
  return out;
 }
@@ -233,13 +249,14 @@ function renderPreview(){
 }
 window.pend=pend;window.renderPreview=renderPreview;
 function readSms(){
- const rows=parseMpesa($('smsbox').value);
+ const txt=$('smsbox').value;const nfz=fzOnly(txt);if(nfz){save();render()}
+ const rows=parseMpesa(txt);
  const have=new Set(S.tx.map(t=>t.code).filter(Boolean));
  const seen=new Set();
  pend=rows.filter(r=>{if(have.has(r.code)||seen.has(r.code))return false;seen.add(r.code);return true});
- window.pend=pend;
+ pend.forEach(matchPlan);window.pend=pend;
  const skipped=rows.length-pend.length;
- $('impmsg').textContent=rows.length?`Found ${pend.length} new transaction${pend.length===1?'':'s'}${skipped?` (${skipped} already imported, skipped)`:''}. Check the categories, then import.`:'No M-Pesa transactions found. Paste the full SMS text, starting with the transaction code.';
+ $('impmsg').textContent=rows.length?`Found ${pend.length} new transaction${pend.length===1?'':'s'}${skipped?` (${skipped} already imported, skipped)`:''}. Check the categories, then import.`:(nfz?'⚡ Fuliza balance updated.':'No M-Pesa transactions found. Paste the full SMS text, starting with the transaction code.');
  renderPreview();
 }
 $('readbtn').onclick=readSms;
@@ -257,7 +274,7 @@ function setNow(id,v){const i=S.inv.find(x=>x.id===id);if(i){i.now=+v||0;save();
 window.del=del;window.setNow=setNow;
 
 let per='this';
-const ICON={Salary:'💼',Business:'🏪',Gift:'🎁','Investment returns':'📈','Other income':'💵',Food:'🍽️',Rent:'🏠',Transport:'🚌','Airtime & data':'📱',Bills:'💡','School fees':'🎓',Health:'🩺','Savings / Investing':'🏦',Fun:'🎉','M-Pesa charges':'🧾','Debt repayment':'🤝',Other:'🧾'};
+const ICON={Salary:'💼',Business:'🏪',Gift:'🎁','Investment returns':'📈','Other income':'💵',Food:'🍽️',Rent:'🏠',Transport:'🚌','Airtime & data':'📱',Bills:'💡','School fees':'🎓',Health:'🩺','Savings / Investing':'🏦',Fun:'🎉','M-Pesa charges':'🧾','Debt repayment':'🤝','Fuliza fees':'⚡',Other:'🧾'};
 const ym=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
 const lastM=()=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);return ym(d)};
 const inPer=t=>per==='all'||t.date.slice(0,7)===(per==='this'?ym(new Date()):lastM());
@@ -269,8 +286,10 @@ const weekStart=s=>{const n=dayNum(s),dt=new Date((n-(n+3)%7)*864e5);return dt.g
 const PLB=[['d','Day'],['w','Week'],['m','Month'],['y','Year']];
 function toast(t){const e=$('toast');e.textContent=t;e.classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.add('hidden'),5000)}
 function addRows(rows){rows.forEach(r=>{
- S.tx.push({id:nid(),kind:r.kind,amount:r.amount,date:r.date,cat:r.cat,ch:r.ch,note:r.name,code:r.code});
+ S.tx.push({id:nid(),kind:r.kind,amount:r.amount,date:r.date,cat:r.cat,ch:r.ch,note:r.name,code:r.code,ph:r.ph,acct:r.acct});
  if(r.fee)S.tx.push({id:nid(),kind:'out',amount:r.fee,date:r.date,cat:'M-Pesa charges',ch:'Fee',note:'Fee for '+r.code,code:r.code+'F'});
+ if(r.fz)fzCommit(r.fz,r.date);
+ if(r.plan)usePlan(r);
 });S.tx.sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id)}
 
 /* ---- debts ---- */
@@ -317,13 +336,112 @@ function renderExtras(){
  const st=budgetStatus(),PL={d:'Today',w:'This week',m:'This month',y:'This year'};
  $('budcard').innerHTML=st.length?st.map(x=>{const pct=Math.min(100,x.spent/x.lim*100),over=x.spent>x.lim,cls=over?'':x.spent>x.lim*.8?'warn':'ok';return `<div style="margin:10px 0"><div class="row" style="border:0;padding:0"><span>${x.c==='ALL'?'🧮 All spending':(ICON[x.c]||'🧾')+' '+esc(x.c)} <small style="display:inline">· ${PL[x.p]}</small></span><span class="amt ${over?'neg':''}">${fmt(x.spent)} <small style="display:inline">/ ${fmt(x.lim)}</small></span></div><div class="bar"><i class="${cls}" style="width:${pct}%"></i></div></div>`}).join(''):'<div class="empty">No budgets yet. Set them under More ⚙️</div>';
  const C=S.debts.map(d=>({d,c:debtCalc(d)}));
- const tr=C.reduce((a,x)=>a+x.c.rem,0),tp=C.reduce((a,x)=>a+x.c.paid,0),ti=C.reduce((a,x)=>a+x.c.intr,0),late=C.filter(x=>x.c.late>0).length;
+ const tr=C.reduce((a,x)=>a+x.c.rem,0),tp=C.reduce((a,x)=>a+x.c.paid,0),ti=C.reduce((a,x)=>a+x.c.intr,0),late=C.filter(x=>x.c.late>0).length+(fzInfo().late>0?1:0);
  $('s4').innerHTML=`<div class="card"><div class="k">Total remaining</div><div class="v neg">${fmt(tr)}</div></div><div class="card"><div class="k">Paid so far</div><div class="v pos">${fmt(tp)}</div></div><div class="card"><div class="k">Interest so far</div><div class="v">${fmt(ti)}</div></div><div class="card"><div class="k">In arrears</div><div class="v ${late?'neg':''}">${late} debt${late===1?'':'s'}</div></div>`;
- $('debtlist').innerHTML=C.length?C.map(({d,c})=>{
+ $('debtlist').innerHTML=fzCardHtml()+(C.length?C.map(({d,c})=>{
   const due=c.rem<=0.5?'✅ Cleared':c.late>0?`<span class="late">⚠️ ${c.late} day${c.late===1?'':'s'} in arrears (due ${esc(d.due)})</span>`:d.due?`Due ${esc(d.due)} · in ${daysBetween(today(),d.due)} day(s)`:'No due date';
   const rt=d.rate?`${d.rate}% per ${d.per==='y'?'year':'month'}`:'no interest';
-  return `<div class="card" style="margin-bottom:10px"><div class="row" style="border:0;padding:0"><div><b>${esc(d.who)}</b><small>Borrowed ${fmt(d.amount)} on ${esc(d.start)} · ${rt}</small></div><div style="text-align:right"><div class="k">Remaining</div><div class="v ${c.rem>0.5?'neg':'pos'}">${fmt(c.rem)}</div></div></div><div class="bar"><i class="ok" style="width:${c.pct}%"></i></div><small style="color:var(--muted)">${c.pct.toFixed(0)}% paid · Paid ${fmt(c.paid)} · Interest so far ${fmt(c.intr)}${d.rate&&c.P>0?` · adds ~${fmt(c.perDay)}/day`:''}</small><div style="margin-top:6px;font-size:13px">${due}</div>${c.rem>0.5?`<div class="payrow"><input id="pay${d.id}" type="number" step="any" min="0" placeholder="Payment (KES)"><button class="btn" onclick="payDebt(${d.id})">Pay</button><button class="btn alt" onclick="undoPay(${d.id})">Undo</button><button class="del" onclick="del('debts',${d.id})" aria-label="Delete">✕</button></div>`:`<div class="payrow"><button class="btn alt" onclick="undoPay(${d.id})">Undo last payment</button><button class="del" onclick="del('debts',${d.id})" aria-label="Delete">✕</button></div>`}</div>`}).join(''):'<div class="card empty">No debts recorded. Add one above.</div>';
+  return `<div class="card" style="margin-bottom:10px"><div class="row" style="border:0;padding:0"><div><b>${esc(d.who)}</b><small>Borrowed ${fmt(d.amount)} on ${esc(d.start)} · ${rt}</small></div><div style="text-align:right"><div class="k">Remaining</div><div class="v ${c.rem>0.5?'neg':'pos'}">${fmt(c.rem)}</div></div></div><div class="bar"><i class="ok" style="width:${c.pct}%"></i></div><small style="color:var(--muted)">${c.pct.toFixed(0)}% paid · Paid ${fmt(c.paid)} · Interest so far ${fmt(c.intr)}${d.rate&&c.P>0?` · adds ~${fmt(c.perDay)}/day`:''}</small><div style="margin-top:6px;font-size:13px">${due}</div>${c.rem>0.5?`<div class="payrow"><input id="pay${d.id}" type="number" step="any" min="0" placeholder="Payment (KES)"><button class="btn" onclick="payDebt(${d.id})">Pay</button><button class="btn alt" onclick="undoPay(${d.id})">Undo</button><button class="del" onclick="del('debts',${d.id})" aria-label="Delete">✕</button></div>`:`<div class="payrow"><button class="btn alt" onclick="undoPay(${d.id})">Undo last payment</button><button class="del" onclick="del('debts',${d.id})" aria-label="Delete">✕</button></div>`}</div>`}).join(''):'<div class="card empty">No other debts recorded. Add one above.</div>');
  $('dout').checked=!!S.debtOut;
+ renderRecs();renderPay();pushPlans();
+}
+/* ---- Fuliza ---- */
+const dateOf=seg=>{const d=seg.match(/on (\d{1,2})\/(\d{1,2})\/(\d{2,4})/);return d?(d[3].length===2?'20'+d[3]:d[3])+'-'+pad2(d[2])+'-'+pad2(d[1]):today()};
+function parseFz(p,code){
+ if(!/fuliza/i.test(p))return null;
+ const g=r=>{const x=p.match(r);return x?parseFloat(x[1].replace(/,/g,'')):null};
+ const e={code,
+  drawn:g(/fuliza m-pesa amount is Ksh\.?\s?([\d,]+(?:\.\d+)?)/i),
+  out:g(/outstanding\s+(?:fuliza\s+m-pesa\s+)?(?:amount|balance)[^0-9K]{0,20}Ksh\.?\s?([\d,]+(?:\.\d+)?)/i),
+  limit:g(/limit[^0-9K]{0,25}Ksh\.?\s?([\d,]+(?:\.\d+)?)/i),
+  fee:g(/(?:access|maintenance|daily|service)\s+fee[^0-9]{0,40}?Ksh\.?\s?([\d,]+(?:\.\d+)?)/i)||g(/interest charged[^0-9]{0,15}Ksh\.?\s?([\d,]+(?:\.\d+)?)/i),
+  repaid:g(/Ksh\.?\s?([\d,]+(?:\.\d+)?)\s+from your m-pesa has been used to/i)};
+ e.full=/fully\s+pa(?:y|id)|fully repaid|cleared/i.test(p);
+ const d=p.match(/due (?:on|by)\s+(\d{1,2})\/(\d{1,2})\/(\d{2,4})/i);
+ if(d)e.due=(d[3].length===2?'20'+d[3]:d[3])+'-'+pad2(d[2])+'-'+pad2(d[1]);
+ return e;
+}
+function fzCommit(e,date){
+ if(!e)return false;
+ const z=S.fz||(S.fz={out:0,log:[]});
+ if(e.code&&z.log.some(l=>l.code===e.code))return false;
+ if(e.out==null&&e.repaid==null&&e.drawn==null&&e.fee==null&&e.limit==null)return false;
+ if(e.out!=null)z.out=e.out;
+ else if(e.full)z.out=0;
+ else if(e.repaid!=null)z.out=Math.max(0,(z.out||0)-e.repaid);
+ else if(e.drawn!=null)z.out=(z.out||0)+e.drawn;
+ if(e.limit!=null)z.limit=e.limit;
+ if(e.due)z.due=e.due;
+ if(z.out>0.5){if(!z.since)z.since=date}else{z.out=0;z.since='';z.due=''}
+ z.asOf=date;z.log.unshift({code:e.code,date});if(z.log.length>200)z.log.length=200;
+ if(e.fee>0&&e.code&&!S.tx.some(t=>t.code===e.code+'Z')){S.tx.push({id:nid(),kind:'out',amount:e.fee,date,cat:'Fuliza fees',ch:'Fee',note:'Fuliza fee',code:e.code+'Z'});S.tx.sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id)}
+ return true;
+}
+function fzOnly(text){let n=0;text.split(/(?=\b[A-Z0-9]{10}\s+Confirmed)/).forEach(seg=>{
+ if(!/fuliza/i.test(seg)||parseMpesa(seg).length)return;
+ const m=seg.match(/^([A-Z0-9]{10})\s+Confirmed/);
+ if(fzCommit(parseFz(seg,m?m[1]:''),dateOf(seg)))n++});return n}
+function fzInfo(){const Z=S.fz||{out:0};return{Z,late:Z.due&&Z.out>0.5?Math.max(0,daysBetween(Z.due,today())):0,days:Z.since&&Z.out>0.5?daysBetween(Z.since,today()):0}}
+window.setFz=()=>{const z=S.fz||(S.fz={out:0,log:[]}),v=$('fzout').value,d=$('fzdue').value;
+ if(v!==''){z.out=Math.max(0,+v);if(z.out>0.5){if(!z.since)z.since=today()}else{z.since='';z.due=''}}
+ if(d)z.due=d;z.asOf=today();save();render()};
+function fzCardHtml(){const {Z,late,days}=fzInfo();
+ return `<div class="card" style="margin-bottom:10px"><div class="row" style="border:0;padding:0"><div><b>⚡ Fuliza M-PESA</b><small>${Z.limit?'Limit '+fmt(Z.limit)+' · ':''}${Z.asOf?'updated '+esc(Z.asOf):'no update yet'}</small></div><div style="text-align:right"><div class="k">Outstanding</div><div class="v ${Z.out>0.5?'neg':'pos'}">${fmt(Z.out||0)}</div></div></div>${Z.out>0.5?`<div style="margin-top:6px;font-size:13px">${late>0?`<span class="late">⚠️ ${late} day${late===1?'':'s'} past due (${esc(Z.due)})</span>`:Z.due?`Due ${esc(Z.due)}`:''}${days>0?` · owed for ${days} day${days===1?'':'s'}${days>30?' ⚠️ Safaricom may suspend your limit after 30 days':''}`:''}</div>`:'<div style="margin-top:6px;font-size:13px">✅ Nothing owed</div>'}<div class="payrow"><input id="fzout" type="number" step="any" min="0" placeholder="Set outstanding"><input id="fzdue" type="date" title="Due date"><button class="btn" onclick="setFz()">Set</button></div><small style="color:var(--muted)">Updates from Fuliza SMS. Already counted in your balance, so it is not subtracted again from net worth. Fees show as "Fuliza fees".</small></div>`}
+/* ---- recipients ---- */
+let recMode='out',recQ='',editRec='',recList=[];
+const rkey=n=>String(n||'').toUpperCase().replace(/\s+/g,' ').trim();
+window.editRecAt=i=>{editRec=recList[i]?recList[i].k:'';renderRecs()};
+window.saveRec=i=>{const k=recList[i].k;(S.rec=S.rec||{})[k]={nick:$('rn').value.trim(),num:$('rm').value.trim(),note:$('ro').value.trim()};editRec='';save();renderRecs()};
+function renderRecs(){
+ $('rc1').classList.toggle('on',recMode==='out');$('rc2').classList.toggle('on',recMode==='in');
+ const g={};
+ S.tx.filter(t=>t.kind===recMode&&t.code&&t.ch!=='Fee'&&t.note).forEach(t=>{const k=rkey(t.note);if(!k)return;const x=g[k]||(g[k]={k,name:t.note,n:0,sum:0,last:'',cats:{},ph:'',acct:''});x.n++;x.sum+=t.amount;if(t.date>x.last)x.last=t.date;x.cats[t.cat]=(x.cats[t.cat]||0)+1;if(t.ph)x.ph=t.ph;if(t.acct)x.acct=t.acct});
+ const R=S.rec||{},q=recQ.trim().toLowerCase();
+ recList=Object.values(g).sort((a,b)=>b.sum-a.sum).filter(x=>!q||((R[x.k]||{}).nick||x.name).toLowerCase().includes(q)||x.ph.includes(q)||((R[x.k]||{}).num||'').toLowerCase().includes(q)).slice(0,40);
+ $('reclist').innerHTML=recList.length?recList.map((x,i)=>{const r=R[x.k]||{},top=Object.entries(x.cats).sort((a,b)=>b[1]-a[1])[0][0];
+  const det=[x.ph?'📞 '+esc(x.ph):'',x.acct?'🧾 acct '+esc(x.acct):'',r.num?'🏷 '+esc(r.num):'',r.note?esc(r.note):''].filter(Boolean).join(' · ');
+  return `<div class="row" style="align-items:flex-start"><div><b>${esc(r.nick||x.name)}</b>${r.nick?`<small>${esc(x.name)}</small>`:''}<small>${recMode==='out'?'Paid':'Received'} ${x.n}× · ${fmt(x.sum)} · last ${esc(x.last)} · usually ${esc(top)}</small>${det?`<small>${det}</small>`:''}${editRec===x.k?`<div style="margin-top:8px;display:grid;gap:6px"><input id="rn" placeholder="Nickname" value="${esc(r.nick||'')}"><input id="rm" placeholder="Till / paybill / phone number" value="${esc(r.num||'')}"><input id="ro" placeholder="Note" value="${esc(r.note||'')}"><div><button class="btn" onclick="saveRec(${i})">Save</button> <button class="btn alt" onclick="editRec='';renderRecs()">Cancel</button></div></div>`:''}</div><button class="del" onclick="editRecAt(${i})" aria-label="Edit">✏️</button></div>`}).join(''):'<div class="empty">No recipients yet. They appear as you import M-Pesa messages.</div>';
+}
+/* ---- payment planner ---- */
+let pm='Till',stepFor='',recOpts=[];
+const PM={Till:{ch:'Paid',lab:'Till number',steps:['Lipa na M-PESA','Buy Goods and Services','Enter the till number','Enter the amount','Enter your M-PESA PIN']},
+ Paybill:{ch:'Paid',lab:'Paybill (business) number',steps:['Lipa na M-PESA','Pay Bill','Enter the business number','Enter the account number','Enter the amount','Enter your M-PESA PIN']},
+ 'Send money':{ch:'Sent',lab:'Phone number',steps:['Send Money','Send to a phone number','Enter the phone number','Enter the amount','Enter your M-PESA PIN']},
+ Pochi:{ch:'Sent',lab:'Pochi phone number',steps:['Send Money','Send to Pochi La Biashara','Enter the phone number','Enter the amount','Enter your M-PESA PIN']}};
+const activePlans=()=>(S.plans||[]).filter(p=>!p.used&&Date.now()-p.ts<7200000);
+function pushPlans(){try{if(window.Android)Android.setPlans(JSON.stringify(activePlans().map(p=>({id:String(p.id),cat:p.cat,ch:p.ch,amt:p.amount,ts:p.ts}))))}catch(e){}}
+window.dial=()=>{try{if(window.Android){Android.dial('*334#');return}}catch(e){}location.href='tel:*334%23'};
+function matchPlan(r){if(r.kind!=='out')return;const m=activePlans().filter(q=>Math.abs(q.amount-r.amount)<0.01).sort((a,b)=>b.ts-a.ts)[0];if(m){r.cat=m.cat;r.ch=m.ch;r.plan=String(m.id)}}
+function usePlan(r){const p=(S.plans||[]).find(x=>String(x.id)===String(r.plan));if(!p)return;p.used=true;
+ if(r.name&&p.num){const k=rkey(r.name),o=(S.rec=S.rec||{})[k]||(S.rec[k]={});if(!o.num)o.num=(p.method==='Till'?'Till ':p.method==='Paybill'?'Paybill ':p.method==='Pochi'?'Pochi ':'Phone ')+p.num+(p.acct?' / acct '+p.acct:'')}}
+function stepsHtml(p){const val=s=>/till number|business number|phone number/i.test(s)?' <b>'+esc(p.num)+'</b>':/account number/i.test(s)?' <b>'+esc(p.acct)+'</b>':/amount/i.test(s)?' <b>'+fmt(p.amount)+'</b>':'';
+ return `<ol style="margin:8px 0 8px 18px;padding:0;font-size:14px"><li style="margin:3px 0">Dial *334#</li>${PM[p.method].steps.map(s=>`<li style="margin:3px 0">${esc(s)}${val(s)}</li>`).join('')}</ol><button class="btn" type="button" onclick="dial()">Open M-Pesa menu</button><small style="display:block;color:var(--muted);margin-top:6px">Menu wording can differ slightly on your phone.</small>`}
+function renderPayOpts(){
+ const g={};S.tx.filter(t=>t.kind==='out'&&t.code&&t.ch!=='Fee'&&t.note).forEach(t=>{const k=rkey(t.note),x=g[k]||(g[k]={k,name:t.note,sum:0,ph:'',acct:''});x.sum+=t.amount;if(t.ph)x.ph=t.ph;if(t.acct)x.acct=t.acct});
+ recOpts=Object.values(g).sort((a,b)=>b.sum-a.sum).slice(0,30);
+ $('prec').innerHTML='<option value="">Pick a saved recipient…</option>'+recOpts.map((x,i)=>{const r=(S.rec||{})[x.k]||{};return `<option value="${i}">${esc(r.nick||x.name)}${r.num?' · '+esc(r.num):''}</option>`}).join('');
+}
+window.fillRec=i=>{const x=recOpts[i];if(!x)return;const r=(S.rec||{})[x.k]||{},t=(r.num||'')+' '+(x.ph||'');let m,n='',a='';
+ if(m=t.match(/till\s*(\d{4,})/i)){pm='Till';n=m[1]}
+ else if(m=t.match(/pay\s*bill\s*(\d{4,})/i)){pm='Paybill';n=m[1];const q=t.match(/acct\s*(\S+)/i);a=q?q[1]:(x.acct||'')}
+ else if(m=t.match(/pochi\s*(\d[\d*]{6,})/i)){pm='Pochi';n=m[1]}
+ else if(m=t.match(/(?:\+?254|0)[\d*]{8,9}/)){pm='Send money';n=m[0]}
+ $('pnum').value=n;$('pacct').value=a;$('pname').value=r.nick||x.name;renderPay()};
+window.cancelPlan=id=>{S.plans=(S.plans||[]).filter(p=>String(p.id)!==String(id));save();pushPlans();renderPay()};
+window.startPlan=()=>{const amount=+$('pamt').value,num=$('pnum').value.trim(),acct=$('pacct').value.trim();
+ if(!(amount>0)||!num){$('pmsg').textContent='Enter the number and the amount first.';return}
+ if(pm==='Paybill'&&!acct){$('pmsg').textContent='Enter the account number for this paybill.';return}
+ const p={id:nid(),cat:$('pcat').value,method:pm,ch:PM[pm].ch,amount,num,acct:pm==='Paybill'?acct:'',name:$('pname').value.trim(),ts:Date.now()};
+ S.plans=[p].concat(S.plans||[]).slice(0,20);stepFor=String(p.id);save();pushPlans();
+ $('pmsg').textContent='Planned ✓ Finish the payment in M-Pesa. Your PIN goes only into Safaricom\'s screen.';
+ ['pamt','pnum','pacct','pname'].forEach(k=>$(k).value='');
+ try{if(window.Android)Android.notify('Pay KES '+amount+' ('+p.cat+')',PM[pm].steps.slice(0,-1).join(' → ')+' → '+num+(p.acct?' / '+p.acct:'')+' → KES '+amount)}catch(e){}
+ renderPay();dial()};
+function renderPay(){
+ S.plans=(S.plans||[]).filter(p=>Date.now()-p.ts<864e5);
+ $('pm').innerHTML=Object.keys(PM).map(k=>`<button class="chip${pm===k?' on':''}" type="button" onclick="pm='${k}';renderPay()">${k}</button>`).join('');
+ $('plab').textContent=PM[pm].lab;$('pacctw').style.display=pm==='Paybill'?'':'none';
+ $('plans').innerHTML=activePlans().map(p=>`<div class="row" style="align-items:flex-start"><div><b>${ICON[p.cat]||'🧾'} ${esc(p.cat)} · ${fmt(p.amount)}</b><small>${esc(p.method)} ${esc(p.num)}${p.acct?' · acct '+esc(p.acct):''}${p.name?' · '+esc(p.name):''}</small><small>⏳ Waiting for the M-Pesa confirmation SMS</small>${stepFor===String(p.id)?stepsHtml(p):''}</div><div style="white-space:nowrap"><button class="btn alt" type="button" style="margin:0;padding:6px 10px" onclick="stepFor=stepFor==='${p.id}'?'':'${p.id}';renderPay()">Steps</button><button class="del" type="button" onclick="cancelPlan('${p.id}')" aria-label="Cancel">✕</button></div></div>`).join('');
 }
 function render(){
  const P=S.tx.filter(inPer);
@@ -402,16 +520,19 @@ $('themebtn').onclick=()=>{S.theme=S.theme==='dark'?'light':S.theme==='light'?un
 function buildBudgets(){$('budgets').innerHTML='<p class="k" style="text-transform:none;margin:0">Limits for a day, a week (Mon to Sun), a month or a year. You get an alert the moment one is passed. Leave blank for none.</p>'+['ALL'].concat(CATS.out).map(c=>`<div style="margin:12px 0"><div style="font-weight:600;margin-bottom:6px">${c==='ALL'?'🧮 All spending':(ICON[c]||'🧾')+' '+esc(c)}</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">${PLB.map(([p,l])=>`<label class="lb">${l}<input type="number" min="0" step="any" placeholder="—" value="${(S.budgets[c]||{})[p]||''}" data-c="${esc(c)}" data-p="${p}"></label>`).join('')}</div></div>`).join('')}
 $('budgets').addEventListener('change',e=>{const c=e.target.dataset.c,p=e.target.dataset.p;if(!c||!p)return;const v=+e.target.value||0,o=S.budgets[c]||(S.budgets[c]={});if(v)o[p]=v;else delete o[p];if(!Object.keys(o).length)delete S.budgets[c];save();render()});
 const bm=t=>$('bkmsg').textContent=t;
-$('bkbtn').onclick=()=>{const ta=$('bk');ta.value=JSON.stringify({tx:S.tx,inv:S.inv,budgets:S.budgets,debts:S.debts,opening:S.opening});ta.focus();ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}bm(ok?'Copied. Paste it into Notes or WhatsApp (Message yourself) to keep it safe.':'Select the text above, copy it, and keep it somewhere safe.')};
+$('bkbtn').onclick=()=>{const ta=$('bk');ta.value=JSON.stringify({tx:S.tx,inv:S.inv,budgets:S.budgets,debts:S.debts,opening:S.opening,fz:S.fz,rec:S.rec});ta.focus();ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}bm(ok?'Copied. Paste it into Notes or WhatsApp (Message yourself) to keep it safe.':'Select the text above, copy it, and keep it somewhere safe.')};
 $('rsbtn').onclick=()=>{try{const d=JSON.parse($('bk').value);if(!Array.isArray(d.tx)||!Array.isArray(d.inv))throw 0;
  const a=new Set(S.tx.map(t=>t.id)),b=new Set(S.inv.map(t=>t.id));let n=0;
  d.tx.forEach(t=>{if(!a.has(t.id)){S.tx.push(t);n++}});d.inv.forEach(t=>{if(!b.has(t.id)){S.inv.push(t);n++}});
- if(d.budgets)Object.assign(S.budgets,d.budgets);migBud();const dd=new Set(S.debts.map(t=>t.id));(d.debts||[]).forEach(t=>{if(!dd.has(t.id)){S.debts.push(t);n++}});if(d.opening&&!S.opening)S.opening=d.opening;
+ if(d.budgets)Object.assign(S.budgets,d.budgets);migBud();const dd=new Set(S.debts.map(t=>t.id));(d.debts||[]).forEach(t=>{if(!dd.has(t.id)){S.debts.push(t);n++}});if(d.opening&&!S.opening)S.opening=d.opening;if(d.fz&&!S.fz)S.fz=d.fz;if(d.rec)S.rec=Object.assign({},d.rec,S.rec||{});
  S.tx.sort((x,y)=>y.date.localeCompare(x.date)||y.id-x.id);save();buildBudgets();render();bm('Restored '+n+' new items ✅')}catch(e){bm('That does not look like a valid backup.')}};
 applyTheme();buildBudgets();renderMore();if(S.pin)showLock('unlock');
 $('f4').start.value=today();$('open').value=S.opening||'';
 $('open').onchange=()=>{S.opening=+$('open').value||0;save();render()};
 $('dout').onchange=e=>{S.debtOut=e.target.checked;save()};
+$('rc1').onclick=()=>{recMode='out';renderRecs()};$('rc2').onclick=()=>{recMode='in';renderRecs()};$('recq').oninput=e=>{recQ=e.target.value;renderRecs()};
+$('pcat').innerHTML=CATS.out.map(c=>`<option>${esc(c)}</option>`).join('');$('pcat').value='Transport';
+$('pay').addEventListener('toggle',()=>{if($('pay').open)renderPayOpts()});
 $('f4').onsubmit=e=>{e.preventDefault();const f=e.target;S.debts.unshift({id:nid(),who:f.who.value,amount:+f.amount.value,rate:+f.rate.value||0,per:f.per.value,start:f.start.value,due:f.due.value,pays:[]});save();['who','amount','rate','due'].forEach(k=>f[k].value='');render()};
 render();
 try{
@@ -419,13 +540,15 @@ try{
  if(u){$('smsbox').value=u;readSms();$('imp').open=true;$('imp').scrollIntoView()}
 }catch(e){}
 window.checkPending=()=>{try{if(window.Android){const a=JSON.parse(Android.takePending());if(!a.length)return;
+ let fzn=0;a.filter(x=>x.fz).forEach(x=>{fzn+=fzOnly(x.t||'')});
  const have=new Set(S.tx.map(t=>t.code));let n=0;
  a.filter(x=>x.auto).forEach(x=>{let r=parseMpesa(x.t||'')[0];
   if(!r){const m=(x.t||'').match(/^([A-Z0-9]{10})/);r={code:m?m[1]:'P'+nid(),kind:'out',amount:+x.amt||0,date:today(),name:'',fee:0}}
   if(!r.amount||have.has(r.code))return;have.add(r.code);
-  if(x.kind)r.kind=x.kind;if(x.ch)r.ch=x.ch;if(x.cat)r.cat=x.cat;addRows([r]);n++});
+  if(x.kind)r.kind=x.kind;if(x.ch)r.ch=x.ch;if(x.cat)r.cat=x.cat;if(x.plan)r.plan=x.plan;addRows([r]);n++});
  if(n){save();render();toast('✅ Added '+n+' transaction'+(n>1?'s':'')+' from pop-ups')}
- const rest=a.filter(x=>!x.auto);
+ if(fzn){save();render();toast('⚡ Fuliza balance updated')}
+ const rest=a.filter(x=>!x.auto&&!x.fz);
  if(rest.length){$('smsbox').value=rest.map(x=>x.t||x).join('\n');readSms();renderPreview();$('imp').open=true;$('imp').scrollIntoView()}
 }}catch(e){}};
 checkPending();
